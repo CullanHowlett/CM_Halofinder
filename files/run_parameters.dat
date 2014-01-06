@@ -1,0 +1,36 @@
+% Run parameters for the parallel FoF routine
+
+InputDir  /mnt/lustre/manera/NBody/Oriana/2LPTsim1001cut_L800N400/
+InputFileBase     ics_Oriana_gauss_z0p520cut_L800N400_ir1001
+
+OutputDir  /mnt/lustre/manera/NBody/Oriana/2LPTsim1001cut_L800N400/
+OutputFileBase     CM_HALOFINDER_ics_Oriana_gauss_z0p520cut_L800N400_ir1001
+
+Nx    4                      % The number of processors in the x, y and z directions respectively
+Ny    4
+Nz    4
+
+Particles       400          % The number of particles in the simulation in the x, y and z directions
+
+Boxsize         800          % The edge length of the simulation in Mpc
+Boundarysize    35           % The size of the boundary region given to each processor in Mpc (In tests minimum was 20)
+
+Linklength      0.76       % The linking length (Mpc/h)
+Nphalomin       20           % The minimum number of particles to consitute a halo
+
+Nread           12           % The number of processors reading in the data (usually set to total number of processors)
+Ninputfiles     58            % The number of initial conditions files to read in
+Starting_file   0            % The file to start from (if we are not reading in the full simulation)
+
+Nwrite          12           % The number of processors writing out at once (usually set to the total number of processors)
+
+% Only needed for the Varlink option (otherwise must comment out)
+%Omega           0.25         % The Matter density at z=0
+%Nlink           1000         % The size of the linking length lookup table
+%Origin_x        0.0          % The position of the origin
+%Origin_y        0.0
+%Origin_z        0.0
+
+
+
+
