@@ -18,11 +18,14 @@ void Read_Data(void) {
   int file_exists, filenumber;
   int * data_index, * nparticles, * nparticles_recv, * cnparticles, * cnparticles_recv;
   int processor_number, neighbour_x, neighbour_y, neighbour_z, processor_comp[3], subscript[3];
-  unsigned int j, m, n, npartfile; 
+  unsigned int j, m, n, npartfile=0, Nout=0, Nout_glob=0; 
   unsigned int nparticles_sum, nparticles_recv_sum;
-  struct part_data * P_file, * P_sorted, * P_temp;
+  struct part_data * P_file=NULL, * P_sorted, * P_temp;
 #ifdef GADGET_STYLE
   int dummy;
+#ifdef LIGHTCONE
+  int cont;
+#endif
 #else
   char bufcount[300];
 #endif
@@ -44,7 +47,7 @@ void Read_Data(void) {
     // Assigns a unique file to each processor
     filenumber=ThisTask*imax+i+starting_file;
     sprintf(buf, "%s/%s.%d", InputDir, InputFileBase, filenumber);
- 
+
     nparticles = (int *)malloc(NTask*sizeof(int));
     nparticles_recv = (int *)malloc(NTask*sizeof(int));
 
@@ -54,7 +57,51 @@ void Read_Data(void) {
 
     file_exists = 0;
 
+// Unformatted input files
+// =======================
 #ifdef GADGET_STYLE
+
+// Lightcone (This will be very slow, if possible it is much better to use the READ_INFO option)
+#ifdef LIGHTCONE
+
+    if((fp = fopen(buf, "rb"))) file_exists = 1; 
+
+    while(1) {
+
+      cont = 0;
+
+      // Set the default number of particles to 1. This is so we that we don't have any tasks trying to send zero data
+      // to any other tasks. This is removed later.
+      for(k=0; k<NTask; k++) nparticles[k] = nparticles_recv[k] = 1;
+
+      if(file_exists) {
+        cont = fread(&dummy, sizeof(dummy), 1, fp);
+        if (cont) {
+          my_fread(&npartfile, sizeof(unsigned int), 1, fp);
+          my_fread(&dummy, sizeof(dummy), 1, fp);
+          my_fread(&dummy, sizeof(dummy), 1, fp);
+          P_file = (struct part_data *)malloc(npartfile*sizeof(struct part_data));
+          for (j=0; j<npartfile; j++) {
+#ifdef PARTICLE_ID
+            my_fread(&(P_file[j].ID), sizeof(unsigned long long), 1, fp);
+#endif
+            for (k=0; k<3; k++) my_fread(&(P_file[j].Pos[k]), sizeof(float), 1, fp);
+            for (k=0; k<3; k++) my_fread(&(P_file[j].Vel[k]), sizeof(float), 1, fp);
+          }
+          my_fread(&dummy, sizeof(dummy), 1, fp);
+        } else {
+          fclose(fp);
+          file_exists = 0;
+        }
+      }
+
+      MPI_Allreduce(MPI_IN_PLACE, &cont, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+      if(!(cont)) break;
+
+      if (file_exists) {
+
+//Snapshot
+#else
 
     if((fp = fopen(buf, "rb"))) {
       file_exists = 1;
@@ -85,6 +132,12 @@ void Read_Data(void) {
       my_fread(&dummy, sizeof(dummy), 1, fp);
 #endif
 
+      fclose(fp);
+
+#endif
+
+// Formatted input files (lightcone and snapshot are the same style)
+// =================================================================
 #else
 
     if((fp = fopen(buf, "r"))) {
@@ -97,39 +150,42 @@ void Read_Data(void) {
 #ifdef MEMORY_MODE
 #ifdef PARTICLE_ID
         if((fscanf(fp, "%llu %f %f %f %f %f %f\n", &(P_file[j].ID), &(P_file[j].Pos[0]), &(P_file[j].Pos[1]), &(P_file[j].Pos[2]), 
-                                                       &(P_file[j].Vel[0]), &(P_file[j].Vel[1]), &(P_file[j].Vel[2])) != 7)) {
+                                                   &(P_file[j].Vel[0]), &(P_file[j].Vel[1]), &(P_file[j].Vel[2])) != 7)) {
 #else
         if((fscanf(fp, "%f %f %f %f %f %f\n", &(P_file[j].Pos[0]), &(P_file[j].Pos[1]), &(P_file[j].Pos[2]), 
-                                                       &(P_file[j].Vel[0]), &(P_file[j].Vel[1]), &(P_file[j].Vel[2])) != 6)) {
+                                              &(P_file[j].Vel[0]), &(P_file[j].Vel[1]), &(P_file[j].Vel[2])) != 6)) {
 #endif
 #else
 #ifdef PARTICLE_ID
         if((fscanf(fp, "%llu %lf %lf %lf %lf %lf %lf\n", &(P_file[j].ID), &(P_file[j].Pos[0]), &(P_file[j].Pos[1]), &(P_file[j].Pos[2]), 
-                                                       &(P_file[j].Vel[0]), &(P_file[j].Vel[1]), &(P_file[j].Vel[2])) != 7)) {
+                                                         &(P_file[j].Vel[0]), &(P_file[j].Vel[1]), &(P_file[j].Vel[2])) != 7)) {
 #else
         if((fscanf(fp, "%lf %lf %lf %lf %lf %lf\n", &(P_file[j].Pos[0]), &(P_file[j].Pos[1]), &(P_file[j].Pos[2]), 
-                                                       &(P_file[j].Vel[0]), &(P_file[j].Vel[1]), &(P_file[j].Vel[2])) != 6)) {
+                                                    &(P_file[j].Vel[0]), &(P_file[j].Vel[1]), &(P_file[j].Vel[2])) != 6)) {
 #endif
 #endif
           printf("Task %d has error reading file %s\n", ThisTask, buf); 
           ierr = MPI_Abort(MPI_COMM_WORLD, 2);
         }
       }
-
-#endif
       fclose(fp);
+#endif
 
       printf("Task %d finished reading %d particles from file %s...\n", ThisTask, npartfile, buf);
 
       // For each particle we calculate which processor it should go to and count the number of particles
       // that are being sent to each processor
       for(j=0; j<npartfile; j++) {
-        processor_comp[0]=(int)floor(Nx*(P_file[j].Pos[0]/boxsize));
-        if (processor_comp[0] >= Nx) processor_comp[0]=0;
-        processor_comp[1]=(int)floor(Ny*(P_file[j].Pos[1]/boxsize));
-        if (processor_comp[1] >= Ny) processor_comp[1]=0;
-        processor_comp[2]=(int)floor(Nz*(P_file[j].Pos[2]/boxsize));
-        if (processor_comp[2] >= Nz) processor_comp[2]=0;
+        if((P_file[j].Pos[0] < 0.0) || (P_file[j].Pos[0] > Lx) || (P_file[j].Pos[1] < 0.0) || (P_file[j].Pos[1] > Ly) || (P_file[j].Pos[2] < 0.0) || (P_file[j].Pos[2] > Lz)) {
+          Nout++;
+          continue;
+        } 
+        processor_comp[0]=(int)floor(Nx*(P_file[j].Pos[0]/Lx));
+        processor_comp[1]=(int)floor(Ny*(P_file[j].Pos[1]/Ly));
+        processor_comp[2]=(int)floor(Nz*(P_file[j].Pos[2]/Lz));
+        if (processor_comp[0] >= Nx) processor_comp[0]--;
+        if (processor_comp[1] >= Ny) processor_comp[1]--;
+        if (processor_comp[2] >= Nz) processor_comp[2]--;
         
         processor_number=Ny*Nx*processor_comp[2]+Nx*processor_comp[1]+processor_comp[0];
         nparticles[processor_number]++;
@@ -145,7 +201,7 @@ void Read_Data(void) {
         // and as such don't (in the end) pass the particle.
         for (k=0; k<3; k++) subscript[k]=0;
         for (k=-1; k<=1; k+=2) {
-          neighbour_x=(int)floor(Nx*((P_file[j].Pos[0]+k*boundarysize)/boxsize));
+          neighbour_x=(int)floor(Nx*((P_file[j].Pos[0]+k*boundarysize)/Lx));
           if (neighbour_x != processor_comp[0]) {
 #ifndef PERIODIC
             if ((neighbour_x < 0) || (neighbour_x >= Nx)) continue;
@@ -154,7 +210,7 @@ void Read_Data(void) {
           }
         }
         for (k=-1; k<=1; k+=2) {
-          neighbour_y=(int)floor(Ny*((P_file[j].Pos[1]+k*boundarysize)/boxsize));
+          neighbour_y=(int)floor(Ny*((P_file[j].Pos[1]+k*boundarysize)/Ly));
           if (neighbour_y != processor_comp[1]) {
 #ifndef PERIODIC
             if ((neighbour_y < 0) || (neighbour_y >= Ny)) continue;
@@ -163,7 +219,7 @@ void Read_Data(void) {
           }
         }
         for (k=-1; k<=1; k+=2) {
-          neighbour_z=(int)floor(Nz*((P_file[j].Pos[2]+k*boundarysize)/boxsize));
+          neighbour_z=(int)floor(Nz*((P_file[j].Pos[2]+k*boundarysize)/Lz));
           if (neighbour_z != processor_comp[2]) {
 #ifndef PERIODIC
             if ((neighbour_z < 0) || (neighbour_z >= Nz)) continue;
@@ -248,12 +304,13 @@ void Read_Data(void) {
       // sent to the particular processor
       data_index = (int *)calloc(NTask,sizeof(int));
       for (j=0; j<npartfile; j++) {
-        processor_comp[0]=(int)floor(Nx*(P_file[j].Pos[0]/boxsize));
-        if (processor_comp[0] >= Nx) processor_comp[0]=0;
-        processor_comp[1]=(int)floor(Ny*(P_file[j].Pos[1]/boxsize));
-        if (processor_comp[1] >= Ny) processor_comp[1]=0;
-        processor_comp[2]=(int)floor(Nz*(P_file[j].Pos[2]/boxsize));
-        if (processor_comp[2] >= Nz) processor_comp[2]=0;
+        if((P_file[j].Pos[0] < 0.0) || (P_file[j].Pos[0] > Lx) || (P_file[j].Pos[1] < 0.0) || (P_file[j].Pos[1] > Ly) || (P_file[j].Pos[2] < 0.0) || (P_file[j].Pos[2] > Lz)) continue;
+        processor_comp[0]=(int)floor(Nx*(P_file[j].Pos[0]/Lx));
+        processor_comp[1]=(int)floor(Ny*(P_file[j].Pos[1]/Ly));
+        processor_comp[2]=(int)floor(Nz*(P_file[j].Pos[2]/Lz));
+        if (processor_comp[0] >= Nx) processor_comp[0]--;
+        if (processor_comp[1] >= Ny) processor_comp[1]--;
+        if (processor_comp[2] >= Nz) processor_comp[2]--;
 
         processor_number=Ny*Nx*processor_comp[2]+Nx*processor_comp[1]+processor_comp[0];
 #ifdef PARTICLE_ID
@@ -271,7 +328,7 @@ void Read_Data(void) {
         // to be put in the array multiple times in different locations.
         for (k=0; k<3; k++) subscript[k]=0;
         for (k=-1; k<=1; k+=2) {
-          neighbour_x=(int)floor(Nx*((P_file[j].Pos[0]+k*boundarysize)/boxsize));
+          neighbour_x=(int)floor(Nx*((P_file[j].Pos[0]+k*boundarysize)/Lx));
           if (neighbour_x != processor_comp[0]) {
 #ifndef PERIODIC
             if ((neighbour_x < 0) || (neighbour_x >= Nx)) continue;
@@ -280,7 +337,7 @@ void Read_Data(void) {
           }
         }
         for (k=-1; k<=1; k+=2) {
-          neighbour_y=(int)floor(Ny*((P_file[j].Pos[1]+k*boundarysize)/boxsize));
+          neighbour_y=(int)floor(Ny*((P_file[j].Pos[1]+k*boundarysize)/Ly));
           if (neighbour_y != processor_comp[1]) {
 #ifndef PERIODIC
             if ((neighbour_y < 0) || (neighbour_y >= Ny)) continue;
@@ -289,7 +346,7 @@ void Read_Data(void) {
           }
         }
         for (k=-1; k<=1; k+=2) {
-          neighbour_z=(int)floor(Nz*((P_file[j].Pos[2]+k*boundarysize)/boxsize));
+          neighbour_z=(int)floor(Nz*((P_file[j].Pos[2]+k*boundarysize)/Lz));
           if (neighbour_z != processor_comp[2]) {
 #ifndef PERIODIC
             if ((neighbour_z < 0) || (neighbour_z >= Nz)) continue;
@@ -406,7 +463,13 @@ void Read_Data(void) {
     ierr = MPI_Alltoallv(&(P_sorted[0]), &(nparticles[0]), &(cnparticles[0]), MPI_BYTE, &(P_temp[0]),
                          &(nparticles_recv[0]), &(cnparticles_recv[0]), MPI_BYTE, MPI_COMM_WORLD);
 
+#ifdef GADGET_STYLE
+#ifndef LIGHTCONE
     free(nparticles);
+#endif
+#else
+    free(nparticles);
+#endif
     free(cnparticles);
     free(P_sorted);
 
@@ -426,10 +489,13 @@ void Read_Data(void) {
 #ifdef PERIODIC
         // If we are using periodic boundary conditions then we have to wrap the particles 
         // passed over the periodic boundaries based on the boxsize
-        for (j=0; j<3; j++) {
-          if (P_temp[m].Pos[j] > rmax_buff[j]) P_temp[m].Pos[j]=rmin[j]-(boxsize-P_temp[m].Pos[j]);
-          if (P_temp[m].Pos[j] < rmin_buff[j]) P_temp[m].Pos[j]=rmax[j]+P_temp[m].Pos[j];
-        }
+        if (P_temp[m].Pos[0] > rmax_buff[0]) P_temp[m].Pos[0]=rmin[0]-(Lx-P_temp[m].Pos[0]);
+        if (P_temp[m].Pos[0] < rmin_buff[0]) P_temp[m].Pos[0]=rmax[0]+P_temp[m].Pos[0];
+        if (P_temp[m].Pos[1] > rmax_buff[1]) P_temp[m].Pos[1]=rmin[1]-(Ly-P_temp[m].Pos[1]);
+        if (P_temp[m].Pos[1] < rmin_buff[1]) P_temp[m].Pos[1]=rmax[1]+P_temp[m].Pos[1];
+        if (P_temp[m].Pos[2] > rmax_buff[2]) P_temp[m].Pos[2]=rmin[2]-(Lz-P_temp[m].Pos[2]);
+        if (P_temp[m].Pos[2] < rmin_buff[2]) P_temp[m].Pos[2]=rmax[2]+P_temp[m].Pos[2];
+        
 #endif
 #ifdef PARTICLE_ID
         P[n].ID = P_temp[m].ID;
@@ -449,41 +515,33 @@ void Read_Data(void) {
       nparticles_tot += (nparticles_recv[k]-1);
     }
 
-    if (ThisTask == 0) printf("------------------------------------\n\n");
-
+#ifdef GADGET_STYLE
+#ifndef LIGHTCONE
     free(nparticles_recv);
+#endif
+#else
+    free(nparticles_recv);
+#endif
     free(cnparticles_recv);
     free(P_temp);
 
     ierr = MPI_Barrier(MPI_COMM_WORLD);
+    if (ThisTask == 0) printf("------------------------------------\n\n");
+
+#ifdef GADGET_STYLE
+#ifdef LIGHTCONE
+  }
+  free(nparticles);
+  free(nparticles_recv);
+#endif
+#endif
     
   }
 
+  ierr = MPI_Barrier(MPI_COMM_WORLD);
   printf("Task %d has %d particles in total...\n", ThisTask, nparticles_tot);
+  ierr = MPI_Reduce(&Nout, &Nout_glob, 1, MPI_UNSIGNED, MPI_SUM, 0, MPI_COMM_WORLD);
+  if (ThisTask == 0) printf("There were %u particles outside the simulation box...\n", Nout_glob);
 
   return;
-}
-
-// This catches I/O errors occuring for fread(). In this case we better stop.
-// ==========================================================================
-size_t my_fread(void *ptr, size_t size, size_t nmemb, FILE * stream)
-{
-  size_t nread;
-
-  if((nread = fread(ptr, size, nmemb, stream)) != nmemb)
-    {
-      printf("I/O error (fread) on task=%d has occured\n", ThisTask);
-      fflush(stdout);
-      FatalError("read_data.c", 441);
-    }
-  return nread;
-}
-
-// Error message
-// =============
-void FatalError(char * filename, int linenum) {
-  printf("Fatal Error at line %d in file %s\n", linenum, filename);
-  fflush(stdout);
-  MPI_Abort(MPI_COMM_WORLD, 1);
-  exit(1);
 }

@@ -85,11 +85,11 @@ extern char InputFileBase[100];   // The base input filename
 extern char OutputFileBase[100];  // The base output filename
 extern int nread;                 // The number of processors reading in the data at once
 extern int nwrite;                // The number of processors writing out the data at once
-extern int particles;             // The number of particles in the simulation (per side)
+extern int Px, Py, Pz;            // The number of particles in the simulation (per side)
 extern int Nx, Ny, Nz;            // The number of tasks in each direction
 extern int ninputfiles;           // The number of input files
 extern int starting_file;         // The first file to start from
-extern double boxsize;            // The edge length of the whole simulation (Mpc/h)
+extern double Lx, Ly, Lz;         // The edge length of the whole simulation (Mpc/h)
 extern double nphalomin;          // The minimum number of particles per halo
 extern double linklength;         // The linking length (Mpc/h)
 extern double boundarysize;       // The size of the boundary region beyond each processor (Mpc/h)
@@ -102,7 +102,6 @@ extern double Origin_x, Origin_y, Origin_z;  // The position of the origin
 // Prototypes
 // ==========
 void FOF(void);
-void Read_Data(void);
 void Set_Params(void);
 void Output_Halos(void);
 void Checkhalo(unsigned int i);
@@ -115,4 +114,9 @@ void Create_Link(void);
 double rz(double z);
 double Ez(double z, void * params);
 double minimizer(double z, void * params);
+#endif
+#ifdef READ_INFO
+void Read_Data_Info(void);
+#else
+void Read_Data(void);
 #endif

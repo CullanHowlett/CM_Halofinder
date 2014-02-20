@@ -27,7 +27,7 @@ void FOF(void) {
   int ix, iy, iz, ix1, iy1, ix2, iy2, iz2;
   unsigned int i, ip, ip2, ind;
   unsigned int * head, *chain, * first;
-  double lcell;
+  double lcell[3];
 #ifdef VARLINK
   double distance;
 #endif 
@@ -35,7 +35,9 @@ void FOF(void) {
   if (ThisTask == 0) printf("Creating subcells...\n");
 
   // set grid of cells 
-  lcell=boxsize/particles;
+  lcell[0]=Lx/Px;
+  lcell[1]=Ly/Py;
+  lcell[2]=Lz/Pz;
 
 #ifdef VARLINK
   // Creates the linking length lookup table
@@ -45,13 +47,13 @@ void FOF(void) {
   linksq = linklength*linklength;
 #endif
 
-  nx=(int)ceil((rmax_buff[0]-rmin_buff[0])/lcell)+1;
-  ny=(int)ceil((rmax_buff[1]-rmin_buff[1])/lcell)+1;
-  nz=(int)ceil((rmax_buff[2]-rmin_buff[2])/lcell)+1;
+  nx=(int)ceil((rmax_buff[0]-rmin_buff[0])/lcell[0])+1;
+  ny=(int)ceil((rmax_buff[1]-rmin_buff[1])/lcell[1])+1;
+  nz=(int)ceil((rmax_buff[2]-rmin_buff[2])/lcell[2])+1;
   
   next  = (unsigned int *)malloc(nparticles_tot*sizeof(unsigned int));  // halo loop
   chain = (unsigned int *)calloc(nparticles_tot,sizeof(unsigned int));  // chain in cell
-  first = (unsigned int *)calloc(nx*ny*nz,sizeof(unsigned int));         // first particle in cell
+  first = (unsigned int *)calloc(nx*ny*nz,sizeof(unsigned int));        // first particle in cell
  
   // These now start at 1 (allows us to use unsigned ints)
   next--;
@@ -61,9 +63,9 @@ void FOF(void) {
   for (i=1; i<=nparticles_tot; i++) {
     next[i] = i;
 
-    ix=(int)floor((P[i-1].Pos[0]-rmin_buff[0])/lcell);
-    iy=(int)floor((P[i-1].Pos[1]-rmin_buff[1])/lcell);
-    iz=(int)floor((P[i-1].Pos[2]-rmin_buff[2])/lcell);
+    ix=(int)floor((P[i-1].Pos[0]-rmin_buff[0])/lcell[0]);
+    iy=(int)floor((P[i-1].Pos[1]-rmin_buff[1])/lcell[1]);
+    iz=(int)floor((P[i-1].Pos[2]-rmin_buff[2])/lcell[2]);
 
     ind = (unsigned int)iz*(unsigned int)ny*(unsigned int)nx+(unsigned int)iy*(unsigned int)nx+(unsigned int)ix;
 
@@ -87,9 +89,9 @@ void FOF(void) {
 #ifdef VARLINK
         // Calculates the distance of the cell from the origin and uses the lookup table to return the 
         // square of the linking length
-        distance=(rmin_buff[0]-Origin_x+(ix-0.5)*lcell)*(rmin_buff[0]-Origin_x+(ix-0.5)*lcell) +
-                 (rmin_buff[1]-Origin_y+(iy+0.5)*lcell)*(rmin_buff[1]-Origin_y+(iy+0.5)*lcell) +
-                 (rmin_buff[2]-Origin_z+(iz+0.5)*lcell)*(rmin_buff[2]-Origin_z+(iz+0.5)*lcell);
+        distance=(rmin_buff[0]-Origin_x+(ix-0.5)*lcell[0])*(rmin_buff[0]-Origin_x+(ix-0.5)*lcell[0]) +
+                 (rmin_buff[1]-Origin_y+(iy+0.5)*lcell[1])*(rmin_buff[1]-Origin_y+(iy+0.5)*lcell[1]) +
+                 (rmin_buff[2]-Origin_z+(iz+0.5)*lcell[2])*(rmin_buff[2]-Origin_z+(iz+0.5)*lcell[2]);
         gsl_spline_eval(link_spline, distance, link_acc);
 #endif  
 
@@ -272,6 +274,25 @@ void Checkhalo(unsigned int i) {
   if ((xh < rmin[0]) || (xh >= rmax[0])) return;
   if ((yh < rmin[1]) || (yh >= rmax[1])) return;
   if ((zh < rmin[2]) || (zh >= rmax[2])) return;
+
+  // This checks that for any halos with a centre of mass on the processor none of the 
+  // constituent particles extend beyond the boundary, otherwise the halos aren't
+  // complete and the boundary regions must be made larger.
+  j=i;
+  do {
+    if ((P[j-1].Pos[0]-rmin_buff[0] < linklength) || (rmax_buff[0]-P[j-1].Pos[0] < linklength)) {
+      printf("Particle very near boundary in x-direction. Repeat run with increased boundary size\n");
+    }
+    if ((P[j-1].Pos[1]-rmin_buff[1] < linklength) || (rmax_buff[1]-P[j-1].Pos[1] < linklength)) {
+      printf("Particle very near boundary in y-direction. Repeat run with increased boundary size\n");
+    }
+    if ((P[j-1].Pos[2]-rmin_buff[2] < linklength) || (rmax_buff[2]-P[j-1].Pos[2] < linklength)) {
+      printf("Particle very near boundary in z-direction. Repeat run with increased boundary size\n");
+    }
+    j=next[j];
+    if (j == i) break;
+  } while(1);
+
 #else
   if (Local_nx == Nx-1) {
     if ((xh < rmin[0]) || (xh  > rmax[0])) return;
@@ -289,24 +310,6 @@ void Checkhalo(unsigned int i) {
     if ((zh < rmin[2]) || (zh >= rmax[2])) return;
   }
 #endif
-
-  j=i;
-  do {
-    // This checks that for any halos with a centre of mass on the processor none of the 
-    // constituent particles extend beyond the boundary, otherwise the halos aren't
-    // complete and the boundary regions must be made larger.
-    if ((P[j-1].Pos[0]-rmin_buff[0] < linklength) || (rmax_buff[0]-P[j-1].Pos[0] < linklength)) {
-      printf("Particle very near boundary in x-direction. Repeat run with increased boundary size\n");
-    }
-    if ((P[j-1].Pos[1]-rmin_buff[1] < linklength) || (rmax_buff[1]-P[j-1].Pos[1] < linklength)) {
-      printf("Particle very near boundary in y-direction. Repeat run with increased boundary size\n");
-    }
-    if ((P[j-1].Pos[2]-rmin_buff[2] < linklength) || (rmax_buff[2]-P[j-1].Pos[2] < linklength)) {
-      printf("Particle very near boundary in z-direction. Repeat run with increased boundary size\n");
-    }
-    j=next[j];
-    if (j == i) break;
-  } while(1);
 
   ihalo[nhalos]     = i;
   nparthalo[nhalos] = nphalo;
@@ -338,7 +341,7 @@ void Output_Halos(void) {
 #ifdef OUTPUT_PARTICLES
       fprintf(fp, "%12d\n", nhalos);
       for(i=0; i<nhalos; i++) {
-        fprintf(fp, "%12d\n", nparthalo[i]);
+        fprintf(fp,"%12d %12.6f %12.6f %12.6f %12.6f %12.6f %12.6f\n", nparthalo[i], xh/nparthalo[i], yh/nparthalo[i], zh/nparthalo[i], vxh/nparthalo[i], vyh/nparthalo[i], vzh/nparthalo[i]);   
         j = ihalo[i];
 #ifdef PARTICLE_ID
         fprintf(fp,"%12llu %12.6f %12.6f %12.6f %12.6f %12.6f %12.6f\n", P[j-1].ID, (float)(P[j-1].Pos[0]),(float)(P[j-1].Pos[1]),(float)(P[j-1].Pos[2]),(float)(P[j-1].Vel[0]),(float)(P[j-1].Vel[1]),(float)(P[j-1].Vel[2]));

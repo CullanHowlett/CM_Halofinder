@@ -33,16 +33,16 @@ void Set_Params(void) {
   Local_nz = ThisTask/(Nx*Ny);
   Local_ny = (ThisTask-Nx*Ny*Local_nz)/Nx;
   Local_nx = ThisTask-Nx*Local_ny-Nx*Ny*Local_nz;
-  rmin[0]=Local_nx*boxsize/(double)Nx;
-  rmin[1]=Local_ny*boxsize/(double)Ny;
-  rmin[2]=Local_nz*boxsize/(double)Nz;
-  rmax[0]=rmin[0]+boxsize/(double)Nx;
+  rmin[0]=Local_nx*Lx/(double)Nx;
+  rmin[1]=Local_ny*Ly/(double)Ny;
+  rmin[2]=Local_nz*Lz/(double)Nz;
+  rmax[0]=rmin[0]+Lx/(double)Nx;
   rmin_buff[0]=rmin[0]-boundarysize;
   rmax_buff[0]=rmax[0]+boundarysize;
-  rmax[1]=rmin[1]+boxsize/(double)Ny;
+  rmax[1]=rmin[1]+Ly/(double)Ny;
   rmin_buff[1]=rmin[1]-boundarysize;
   rmax_buff[1]=rmax[1]+boundarysize;
-  rmax[2]=rmin[2]+boxsize/(double)Nz;
+  rmax[2]=rmin[2]+Lz/(double)Nz;
   rmin_buff[2]=rmin[2]-boundarysize;
   rmax_buff[2]=rmax[2]+boundarysize;
 #ifndef PERIODIC
@@ -62,9 +62,9 @@ void Set_Params(void) {
   // the origin is located and set the minimum distance to the origin for that processor to 0 explicitly. 
   dmin = 0.0;
   dmax = 0.0;
-  origin_processor_comp[0]=int(floor(Nx*(Origin_x/boxsize)));
-  origin_processor_comp[1]=int(floor(Ny*(Origin_y/boxsize)));
-  origin_processor_comp[2]=int(floor(Nz*(Origin_z/boxsize)));
+  origin_processor_comp[0]=int(floor(Nx*(Origin_x/Lx)));
+  origin_processor_comp[1]=int(floor(Ny*(Origin_y/Ly)));
+  origin_processor_comp[2]=int(floor(Nz*(Origin_z/Lz)));
   if (ThisTask == 0) {
     if ((origin_processor_comp[0] >= Nx) || (origin_processor_comp[0] < 0) ||
         (origin_processor_comp[1] >= Ny) || (origin_processor_comp[1] < 0) ||
@@ -101,13 +101,13 @@ void Set_Params(void) {
 
   // Creates space for the particle data (including extra space for the boundary particles based on the
   // percentage of particles found in the boundaries)
-  extra=2*(Nx*(boundarysize/boxsize)+Ny*(boundarysize/boxsize)+Nz*(boundarysize/boxsize));
-  extra=extra+4*Nx*Ny*(boundarysize/boxsize)*(boundarysize/boxsize);
-  extra=extra+4*Nx*Nz*(boundarysize/boxsize)*(boundarysize/boxsize);
-  extra=extra+4*Ny*Nz*(boundarysize/boxsize)*(boundarysize/boxsize);
-  extra=extra+8*Nx*Ny*Nz*(boundarysize/boxsize)*(boundarysize/boxsize)*(boundarysize/boxsize);
+  extra=2*(Nx*(boundarysize/Lx)+Ny*(boundarysize/Ly)+Nz*(boundarysize/Lz));
+  extra=extra+4*Nx*Ny*(boundarysize/Lx)*(boundarysize/Ly);
+  extra=extra+4*Nx*Nz*(boundarysize/Lx)*(boundarysize/Lz);
+  extra=extra+4*Ny*Nz*(boundarysize/Ly)*(boundarysize/Lz);
+  extra=extra+8*Nx*Ny*Nz*(boundarysize/Lx)*(boundarysize/Ly)*(boundarysize/Lz);
 
-  maxparticles=(unsigned int)ceil((1.15*(1.0+extra)*((unsigned int)particles/Nx)*((unsigned int)particles/Ny)*((unsigned int)particles)/Nz));
+  maxparticles=(unsigned int)ceil(1.15*(1.0+extra)*((unsigned int)Px/Nx)*((unsigned int)Py/Ny)*((unsigned int)Pz/Nz));
 
   P = (struct part_data *)malloc(maxparticles*sizeof(struct part_data));
 
@@ -161,8 +161,16 @@ void Read_Parameterfile(char * fname) {
   addr[nt] = &Nz;
   id[nt++] = INT;
 
-  strcpy(tag[nt], "Particles");
-  addr[nt] = &particles;
+  strcpy(tag[nt], "Px");
+  addr[nt] = &Px;
+  id[nt++] = INT;
+
+  strcpy(tag[nt], "Py");
+  addr[nt] = &Py;
+  id[nt++] = INT;
+
+  strcpy(tag[nt], "Pz");
+  addr[nt] = &Pz;
   id[nt++] = INT;
 
   strcpy(tag[nt], "Nread");
@@ -181,8 +189,16 @@ void Read_Parameterfile(char * fname) {
   addr[nt] = &nwrite;
   id[nt++] = INT;
 
-  strcpy(tag[nt], "Boxsize");
-  addr[nt] = &boxsize;
+  strcpy(tag[nt], "Lx");
+  addr[nt] = &Lx;
+  id[nt++] = FLOAT;
+
+  strcpy(tag[nt], "Ly");
+  addr[nt] = &Ly;
+  id[nt++] = FLOAT;
+
+  strcpy(tag[nt], "Lz");
+  addr[nt] = &Lz;
   id[nt++] = FLOAT;
 
   strcpy(tag[nt], "Boundarysize");

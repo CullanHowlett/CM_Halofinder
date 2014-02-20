@@ -23,28 +23,28 @@ int main(int argc, char **argv) {
   Read_Parameterfile(argv[1]);
 
   if(ThisTask == 0) {
-    printf("Run Parameters\n");
+    printf("\nRun Parameters\n");
     printf("==============\n");
 #ifdef VARLINK
     printf("Cosmology:\n");
     printf("  Omega_Matter(z=0) = %lf\n", Omega);
 #endif
     printf("Simulation:\n");
-    printf("  Particles = %d\n", particles);
-    printf("  Boxsize = %lf\n", boxsize);
+    printf("  Particles(x, y, z) = %d, %d, %d\n", Px, Py, Pz);
+    printf("  Boxsize(x, y, z) = %lf, %lf, %lf\n", Lx, Ly, Lz);
     printf("  Boundary size = %lf\n", boundarysize);
     printf("  Linking Length = %lf\n", linklength);
     printf("  Particles per Halo = %lf\n", nphalomin);
 #ifdef VARLINK
     printf("  Linking Length table size = %lf\n", Nlink);
-    printf("  Origin(x, y, z) = (%lf, %lf, %lf)\n", Origin_x, Origin_y, Origin_z);
+    printf("  Origin(x, y, z) = %lf, %lf, %lf\n", Origin_x, Origin_y, Origin_z);
 #endif
     printf("\n");
   }
 
   if (ThisTask == 0) {
     printf("Setting memory and variables\n");
-    printf("============================\n");
+    printf("============================\n\n");
   }
   Set_Params();
 
@@ -56,7 +56,11 @@ int main(int argc, char **argv) {
     printf("Reading in Dark Matter field\n");
     printf("============================\n");
   }
+#ifdef READ_INFO
+  Read_Data_Info();
+#else
   Read_Data();
+#endif
 
   ierr = MPI_Barrier(MPI_COMM_WORLD);
 
@@ -72,4 +76,28 @@ int main(int argc, char **argv) {
   ierr = MPI_Finalize();
 
   return 0;
+}
+
+// This catches I/O errors occuring for fread(). In this case we better stop.
+// ==========================================================================
+size_t my_fread(void *ptr, size_t size, size_t nmemb, FILE * stream)
+{
+  size_t nread;
+
+  if((nread = fread(ptr, size, nmemb, stream)) != nmemb)
+    {
+      printf("I/O error (fread) on task=%d has occured\n", ThisTask);
+      fflush(stdout);
+      FatalError("read_data.c", 441);
+    }
+  return nread;
+}
+
+// Error message
+// =============
+void FatalError(char * filename, int linenum) {
+  printf("Fatal Error at line %d in file %s\n", linenum, filename);
+  fflush(stdout);
+  MPI_Abort(MPI_COMM_WORLD, 1);
+  exit(1);
 }

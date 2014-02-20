@@ -37,12 +37,12 @@ char OutputDir[100];       // The output directory
 char InputFileBase[100];   // The base input filename
 char OutputFileBase[100];  // The base output filename
 int Nx, Ny, Nz;            // The number of tasks in each direction
-int particles;             // The number of particles in the simulation (per side)
+int Px, Py, Pz;            // The number of particles in the simulation (per side)
 int nread;                 // The number of processors reading in the data at once
 int ninputfiles;           // The number of input files
 int starting_file;         // The first file to start from
 int nwrite;                // The number of processors writing out the data at once
-double boxsize;            // The edge length of the whole simulation (Mpc/h)
+double Lx, Ly, Lz;            // The edge length of the whole simulation (Mpc/h)
 double boundarysize;       // The size of the boundary region beyond each processor (Mpc/h)
 double linklength;         // The linking length (Mpc/h)
 double nphalomin;          // The minimum number of particles per halo
