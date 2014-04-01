@@ -42,12 +42,14 @@ int nread;                 // The number of processors reading in the data at on
 int ninputfiles;           // The number of input files
 int starting_file;         // The first file to start from
 int nwrite;                // The number of processors writing out the data at once
-double Lx, Ly, Lz;            // The edge length of the whole simulation (Mpc/h)
+double Buffer;             // The amount of buffer memory to allocate to account for the inhomogeneity of the dark matter field
+double Lxmin, Lxmax;       // The x-boundaries of the simulation
+double Lymin, Lymax;       // The y-boundaries of the simulation
+double Lzmin, Lzmax;       // The z-boundaries of the simulation
 double boundarysize;       // The size of the boundary region beyond each processor (Mpc/h)
 double linklength;         // The linking length (Mpc/h)
 double nphalomin;          // The minimum number of particles per halo
 #ifdef VARLINK
-int Nlink;                            // The size of the linking length lookup table
 double Omega;                         // The matter density at z=0
 double Origin_x, Origin_y, Origin_z;  // The position of the origin
 #endif 

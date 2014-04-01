@@ -70,25 +70,25 @@ void Read_Data_Info(void) {
 #ifdef PERIODIC
         } else {
           if (Local_nx == 0) {
-            xmin -= Lx;
-            xmax -= Lx;
+            xmin -= (Lxmax-Lxmin);
+            xmax -= (Lxmax-Lxmin);
           } else if (Local_nx == Nx-1) {
-            xmin += Lx;
-            xmax += Lx;
+            xmin += (Lxmax-Lxmin);
+            xmax += (Lxmax-Lxmin);
           }
           if (Local_ny == 0) {
-            ymin -= Ly;
-            ymax -= Ly;
+            ymin -= (Lymax-Lymin);
+            ymax -= (Lymax-Lymin);
           } else if (Local_ny == Ny-1) {
-            ymin += Ly;
-            ymax += Ly;
+            ymin += (Lymax-Lymin);
+            ymax += (Lymax-Lymin);
           }
           if (Local_nz == 0) {
-            zmin -= Lz;
-            zmax -= Lz;
+            zmin -= (Lzmax-Lzmin);
+            zmax -= (Lzmax-Lzmin);
           } else if (Local_nz == Nz-1) {
-            zmin += Lz;
-            zmax += Lz;
+            zmin += (Lzmax-Lzmin);
+            zmax += (Lzmax-Lzmin);
           }
 
           if((rmin_buff[0] <= xmax) && (rmax_buff[0] >= xmin) && (rmin_buff[1] <= ymax) && (rmax_buff[1] >= ymin) && (rmin_buff[2] <= zmax) && (rmax_buff[2] >= zmin)) filenumbers[filenumber] = 1;         
@@ -201,7 +201,7 @@ void Read_Data_Info(void) {
 
 #endif
 
-          if((P_file.Pos[0] < 0.0) || (P_file.Pos[0] > Lx) || (P_file.Pos[1] < 0.0) || (P_file.Pos[1] > Ly) || (P_file.Pos[2] < 0.0) || (P_file.Pos[2] > Lz)) {
+          if((P_file.Pos[0] < Lxmin) || (P_file.Pos[0] > Lxmax) || (P_file.Pos[1] < Lymin) || (P_file.Pos[1] > Lymax) || (P_file.Pos[2] < Lzmin) || (P_file.Pos[2] > Lzmax)) {
             Nout[i]++;
             continue;
           }
@@ -221,7 +221,7 @@ void Read_Data_Info(void) {
 #ifdef PERIODIC
           if (Local_nx == 0) {
             P_wrap = P_file;
-            P_wrap.Pos[0] = P_file.Pos[0]-Lx;
+            P_wrap.Pos[0] = P_file.Pos[0]-(Lxmax-Lxmin);
             if((P_wrap.Pos[0] >= rmin_buff[0]) && (P_wrap.Pos[0] <= rmax_buff[0]) && 
                (P_wrap.Pos[1] >= rmin_buff[1]) && (P_wrap.Pos[1] <= rmax_buff[1]) && 
                (P_wrap.Pos[2] >= rmin_buff[2]) && (P_wrap.Pos[2] <= rmax_buff[2])) {
@@ -234,7 +234,7 @@ void Read_Data_Info(void) {
               }
             }
             if (Local_ny == 0) {
-              P_wrap.Pos[1] = P_file.Pos[1]-Ly;
+              P_wrap.Pos[1] = P_file.Pos[1]-(Lymax-Lymin);
               if((P_wrap.Pos[0] >= rmin_buff[0]) && (P_wrap.Pos[0] <= rmax_buff[0]) && 
                  (P_wrap.Pos[1] >= rmin_buff[1]) && (P_wrap.Pos[1] <= rmax_buff[1]) && 
                  (P_wrap.Pos[2] >= rmin_buff[2]) && (P_wrap.Pos[2] <= rmax_buff[2])) {
@@ -247,7 +247,7 @@ void Read_Data_Info(void) {
                 }
               }
               if (Local_nz == 0) {
-                P_wrap.Pos[2] = P_file.Pos[2]-Lz;
+                P_wrap.Pos[2] = P_file.Pos[2]-(Lzmax-Lzmin);
                 if((P_wrap.Pos[0] >= rmin_buff[0]) && (P_wrap.Pos[0] <= rmax_buff[0]) && 
                    (P_wrap.Pos[1] >= rmin_buff[1]) && (P_wrap.Pos[1] <= rmax_buff[1]) && 
                    (P_wrap.Pos[2] >= rmin_buff[2]) && (P_wrap.Pos[2] <= rmax_buff[2])) {
@@ -260,7 +260,7 @@ void Read_Data_Info(void) {
                   }
                 }
               } else if (Local_nz == Nz-1) {
-                P_wrap.Pos[2] = P_file.Pos[2]+Lz;
+                P_wrap.Pos[2] = P_file.Pos[2]+(Lzmax-Lzmin);
                 if((P_wrap.Pos[0] >= rmin_buff[0]) && (P_wrap.Pos[0] <= rmax_buff[0]) && 
                    (P_wrap.Pos[1] >= rmin_buff[1]) && (P_wrap.Pos[1] <= rmax_buff[1]) && 
                    (P_wrap.Pos[2] >= rmin_buff[2]) && (P_wrap.Pos[2] <= rmax_buff[2])) {
@@ -274,7 +274,7 @@ void Read_Data_Info(void) {
                 }
               }
             } else if (Local_ny == Ny-1) {
-              P_wrap.Pos[1] = P_file.Pos[1]+Ly;
+              P_wrap.Pos[1] = P_file.Pos[1]+(Lymax-Lymin);
               if((P_wrap.Pos[0] >= rmin_buff[0]) && (P_wrap.Pos[0] <= rmax_buff[0]) && 
                  (P_wrap.Pos[1] >= rmin_buff[1]) && (P_wrap.Pos[1] <= rmax_buff[1]) && 
                  (P_wrap.Pos[2] >= rmin_buff[2]) && (P_wrap.Pos[2] <= rmax_buff[2])) {
@@ -287,7 +287,7 @@ void Read_Data_Info(void) {
                 }
               }
               if (Local_nz == 0) {
-                P_wrap.Pos[2] = P_file.Pos[2]-Lz;
+                P_wrap.Pos[2] = P_file.Pos[2]-(Lzmax-Lzmin);
                 if((P_wrap.Pos[0] >= rmin_buff[0]) && (P_wrap.Pos[0] <= rmax_buff[0]) && 
                    (P_wrap.Pos[1] >= rmin_buff[1]) && (P_wrap.Pos[1] <= rmax_buff[1]) && 
                    (P_wrap.Pos[2] >= rmin_buff[2]) && (P_wrap.Pos[2] <= rmax_buff[2])) {
@@ -300,7 +300,7 @@ void Read_Data_Info(void) {
                   }
                 }
               } else if (Local_nz == Nz-1) {
-                P_wrap.Pos[2] = P_file.Pos[2]+Lz;
+                P_wrap.Pos[2] = P_file.Pos[2]+(Lzmax-Lzmin);
                 if((P_wrap.Pos[0] >= rmin_buff[0]) && (P_wrap.Pos[0] <= rmax_buff[0]) && 
                    (P_wrap.Pos[1] >= rmin_buff[1]) && (P_wrap.Pos[1] <= rmax_buff[1]) && 
                    (P_wrap.Pos[2] >= rmin_buff[2]) && (P_wrap.Pos[2] <= rmax_buff[2])) {
@@ -316,7 +316,7 @@ void Read_Data_Info(void) {
             }
             P_wrap.Pos[1] = P_file.Pos[1];
             if (Local_nz == 0) {
-              P_wrap.Pos[2] = P_file.Pos[2]-Lz;
+              P_wrap.Pos[2] = P_file.Pos[2]-(Lzmax-Lzmin);
               if((P_wrap.Pos[0] >= rmin_buff[0]) && (P_wrap.Pos[0] <= rmax_buff[0]) && 
                  (P_wrap.Pos[1] >= rmin_buff[1]) && (P_wrap.Pos[1] <= rmax_buff[1]) && 
                  (P_wrap.Pos[2] >= rmin_buff[2]) && (P_wrap.Pos[2] <= rmax_buff[2])) {
@@ -329,7 +329,7 @@ void Read_Data_Info(void) {
                 }
               }
             } else if (Local_nz == Nz-1) {
-              P_wrap.Pos[2] = P_file.Pos[2]+Lz;
+              P_wrap.Pos[2] = P_file.Pos[2]+(Lzmax-Lzmin);
               if((P_wrap.Pos[0] >= rmin_buff[0]) && (P_wrap.Pos[0] <= rmax_buff[0]) && 
                  (P_wrap.Pos[1] >= rmin_buff[1]) && (P_wrap.Pos[1] <= rmax_buff[1]) && 
                  (P_wrap.Pos[2] >= rmin_buff[2]) && (P_wrap.Pos[2] <= rmax_buff[2])) {
@@ -344,7 +344,7 @@ void Read_Data_Info(void) {
             }
           } else if (Local_nx == Nx-1) {
             P_wrap = P_file;
-            P_wrap.Pos[0] = P_file.Pos[0]+Lx;
+            P_wrap.Pos[0] = P_file.Pos[0]+(Lxmax-Lxmin);
             if((P_wrap.Pos[0] >= rmin_buff[0]) && (P_wrap.Pos[0] <= rmax_buff[0]) && 
                (P_wrap.Pos[1] >= rmin_buff[1]) && (P_wrap.Pos[1] <= rmax_buff[1]) && 
                (P_wrap.Pos[2] >= rmin_buff[2]) && (P_wrap.Pos[2] <= rmax_buff[2])) {
@@ -357,7 +357,7 @@ void Read_Data_Info(void) {
               }
             }
             if (Local_ny == 0) {
-              P_wrap.Pos[1] = P_file.Pos[1]-Ly;
+              P_wrap.Pos[1] = P_file.Pos[1]-(Lymax-Lymin);
               if((P_wrap.Pos[0] >= rmin_buff[0]) && (P_wrap.Pos[0] <= rmax_buff[0]) && 
                  (P_wrap.Pos[1] >= rmin_buff[1]) && (P_wrap.Pos[1] <= rmax_buff[1]) && 
                  (P_wrap.Pos[2] >= rmin_buff[2]) && (P_wrap.Pos[2] <= rmax_buff[2])) {
@@ -370,7 +370,7 @@ void Read_Data_Info(void) {
                 }
               }
               if (Local_nz == 0) {
-                P_wrap.Pos[2] = P_file.Pos[2]-Lz;
+                P_wrap.Pos[2] = P_file.Pos[2]-(Lzmax-Lzmin);
                 if((P_wrap.Pos[0] >= rmin_buff[0]) && (P_wrap.Pos[0] <= rmax_buff[0]) && 
                    (P_wrap.Pos[1] >= rmin_buff[1]) && (P_wrap.Pos[1] <= rmax_buff[1]) && 
                    (P_wrap.Pos[2] >= rmin_buff[2]) && (P_wrap.Pos[2] <= rmax_buff[2])) {
@@ -383,7 +383,7 @@ void Read_Data_Info(void) {
                   }
                 }
               } else if (Local_nz == Nz-1) {
-                P_wrap.Pos[2] = P_file.Pos[2]+Lz;
+                P_wrap.Pos[2] = P_file.Pos[2]+(Lzmax-Lzmin);
                 if((P_wrap.Pos[0] >= rmin_buff[0]) && (P_wrap.Pos[0] <= rmax_buff[0]) && 
                    (P_wrap.Pos[1] >= rmin_buff[1]) && (P_wrap.Pos[1] <= rmax_buff[1]) && 
                    (P_wrap.Pos[2] >= rmin_buff[2]) && (P_wrap.Pos[2] <= rmax_buff[2])) {
@@ -397,7 +397,7 @@ void Read_Data_Info(void) {
                 }
               }
             } else if (Local_ny == Ny-1) {
-              P_wrap.Pos[1] = P_file.Pos[1]+Ly;
+              P_wrap.Pos[1] = P_file.Pos[1]+(Lymax-Lymin);
               if((P_wrap.Pos[0] >= rmin_buff[0]) && (P_wrap.Pos[0] <= rmax_buff[0]) && 
                  (P_wrap.Pos[1] >= rmin_buff[1]) && (P_wrap.Pos[1] <= rmax_buff[1]) && 
                  (P_wrap.Pos[2] >= rmin_buff[2]) && (P_wrap.Pos[2] <= rmax_buff[2])) {
@@ -410,7 +410,7 @@ void Read_Data_Info(void) {
                 }
               }
               if (Local_nz == 0) {
-                P_wrap.Pos[2] = P_file.Pos[2]-Lz;
+                P_wrap.Pos[2] = P_file.Pos[2]-(Lzmax-Lzmin);
                 if((P_wrap.Pos[0] >= rmin_buff[0]) && (P_wrap.Pos[0] <= rmax_buff[0]) && 
                    (P_wrap.Pos[1] >= rmin_buff[1]) && (P_wrap.Pos[1] <= rmax_buff[1]) && 
                    (P_wrap.Pos[2] >= rmin_buff[2]) && (P_wrap.Pos[2] <= rmax_buff[2])) {
@@ -423,7 +423,7 @@ void Read_Data_Info(void) {
                   }
                 }
               } else if (Local_nz == Nz-1) {
-                P_wrap.Pos[2] = P_file.Pos[2]+Lz;
+                P_wrap.Pos[2] = P_file.Pos[2]+(Lzmax-Lzmin);
                 if((P_wrap.Pos[0] >= rmin_buff[0]) && (P_wrap.Pos[0] <= rmax_buff[0]) && 
                    (P_wrap.Pos[1] >= rmin_buff[1]) && (P_wrap.Pos[1] <= rmax_buff[1]) && 
                    (P_wrap.Pos[2] >= rmin_buff[2]) && (P_wrap.Pos[2] <= rmax_buff[2])) {
@@ -439,7 +439,7 @@ void Read_Data_Info(void) {
             }
             P_wrap.Pos[1] = P_file.Pos[1];
             if (Local_nz == 0) {
-              P_wrap.Pos[2] = P_file.Pos[2]-Lz;
+              P_wrap.Pos[2] = P_file.Pos[2]-(Lzmax-Lzmin);
               if((P_wrap.Pos[0] >= rmin_buff[0]) && (P_wrap.Pos[0] <= rmax_buff[0]) && 
                  (P_wrap.Pos[1] >= rmin_buff[1]) && (P_wrap.Pos[1] <= rmax_buff[1]) && 
                  (P_wrap.Pos[2] >= rmin_buff[2]) && (P_wrap.Pos[2] <= rmax_buff[2])) {
@@ -452,7 +452,7 @@ void Read_Data_Info(void) {
                 }
               }
             } else if (Local_nz == Nz-1) {
-              P_wrap.Pos[2] = P_file.Pos[2]+Lz;
+              P_wrap.Pos[2] = P_file.Pos[2]+(Lzmax-Lzmin);
               if((P_wrap.Pos[0] >= rmin_buff[0]) && (P_wrap.Pos[0] <= rmax_buff[0]) && 
                  (P_wrap.Pos[1] >= rmin_buff[1]) && (P_wrap.Pos[1] <= rmax_buff[1]) && 
                  (P_wrap.Pos[2] >= rmin_buff[2]) && (P_wrap.Pos[2] <= rmax_buff[2])) {
@@ -468,7 +468,7 @@ void Read_Data_Info(void) {
           }
           P_wrap = P_file;
           if (Local_ny == 0) {
-            P_wrap.Pos[1] = P_file.Pos[1]-Ly;
+            P_wrap.Pos[1] = P_file.Pos[1]-(Lymax-Lymin);
             if((P_wrap.Pos[0] >= rmin_buff[0]) && (P_wrap.Pos[0] <= rmax_buff[0]) && 
                (P_wrap.Pos[1] >= rmin_buff[1]) && (P_wrap.Pos[1] <= rmax_buff[1]) && 
                (P_wrap.Pos[2] >= rmin_buff[2]) && (P_wrap.Pos[2] <= rmax_buff[2])) {
@@ -481,7 +481,7 @@ void Read_Data_Info(void) {
               }
             }
             if (Local_nz == 0) {
-              P_wrap.Pos[2] = P_file.Pos[2]-Lz;
+              P_wrap.Pos[2] = P_file.Pos[2]-(Lzmax-Lzmin);
               if((P_wrap.Pos[0] >= rmin_buff[0]) && (P_wrap.Pos[0] <= rmax_buff[0]) && 
                  (P_wrap.Pos[1] >= rmin_buff[1]) && (P_wrap.Pos[1] <= rmax_buff[1]) && 
                  (P_wrap.Pos[2] >= rmin_buff[2]) && (P_wrap.Pos[2] <= rmax_buff[2])) {
@@ -494,7 +494,7 @@ void Read_Data_Info(void) {
                 }
               }
             } else if (Local_nz == Nz-1) {
-              P_wrap.Pos[2] = P_file.Pos[2]+Lz;
+              P_wrap.Pos[2] = P_file.Pos[2]+(Lzmax-Lzmin);
               if((P_wrap.Pos[0] >= rmin_buff[0]) && (P_wrap.Pos[0] <= rmax_buff[0]) && 
                  (P_wrap.Pos[1] >= rmin_buff[1]) && (P_wrap.Pos[1] <= rmax_buff[1]) && 
                  (P_wrap.Pos[2] >= rmin_buff[2]) && (P_wrap.Pos[2] <= rmax_buff[2])) {
@@ -508,7 +508,7 @@ void Read_Data_Info(void) {
               }
             }
           } else if (Local_ny == Ny-1) {
-              P_wrap.Pos[1] = P_file.Pos[1]+Ly;
+              P_wrap.Pos[1] = P_file.Pos[1]+(Lymax-Lymin);
               if((P_wrap.Pos[0] >= rmin_buff[0]) && (P_wrap.Pos[0] <= rmax_buff[0]) && 
                  (P_wrap.Pos[1] >= rmin_buff[1]) && (P_wrap.Pos[1] <= rmax_buff[1]) && 
                  (P_wrap.Pos[2] >= rmin_buff[2]) && (P_wrap.Pos[2] <= rmax_buff[2])) {
@@ -521,7 +521,7 @@ void Read_Data_Info(void) {
                 }
               }
               if (Local_nz == 0) {
-                P_wrap.Pos[2] = P_file.Pos[2]-Lz;
+                P_wrap.Pos[2] = P_file.Pos[2]-(Lzmax-Lzmin);
                 if((P_wrap.Pos[0] >= rmin_buff[0]) && (P_wrap.Pos[0] <= rmax_buff[0]) && 
                    (P_wrap.Pos[1] >= rmin_buff[1]) && (P_wrap.Pos[1] <= rmax_buff[1]) && 
                    (P_wrap.Pos[2] >= rmin_buff[2]) && (P_wrap.Pos[2] <= rmax_buff[2])) {
@@ -534,7 +534,7 @@ void Read_Data_Info(void) {
                   }
                 }
               } else if (Local_nz == Nz-1) {
-                P_wrap.Pos[2] = P_file.Pos[2]+Lz;
+                P_wrap.Pos[2] = P_file.Pos[2]+(Lzmax-Lzmin);
                 if((P_wrap.Pos[0] >= rmin_buff[0]) && (P_wrap.Pos[0] <= rmax_buff[0]) && 
                    (P_wrap.Pos[1] >= rmin_buff[1]) && (P_wrap.Pos[1] <= rmax_buff[1]) && 
                    (P_wrap.Pos[2] >= rmin_buff[2]) && (P_wrap.Pos[2] <= rmax_buff[2])) {
@@ -550,7 +550,7 @@ void Read_Data_Info(void) {
             }
             P_wrap = P_file;
             if (Local_nz == 0) {
-              P_wrap.Pos[2] = P_file.Pos[2]-Lz;
+              P_wrap.Pos[2] = P_file.Pos[2]-(Lzmax-Lzmin);
               if((P_wrap.Pos[0] >= rmin_buff[0]) && (P_wrap.Pos[0] <= rmax_buff[0]) && 
                  (P_wrap.Pos[1] >= rmin_buff[1]) && (P_wrap.Pos[1] <= rmax_buff[1]) && 
                  (P_wrap.Pos[2] >= rmin_buff[2]) && (P_wrap.Pos[2] <= rmax_buff[2])) {
@@ -563,7 +563,7 @@ void Read_Data_Info(void) {
                 }
               }
             } else if (Local_nz == Nz-1) {
-              P_wrap.Pos[2] = P_file.Pos[2]+Lz;
+              P_wrap.Pos[2] = P_file.Pos[2]+(Lzmax-Lzmin);
               if((P_wrap.Pos[0] >= rmin_buff[0]) && (P_wrap.Pos[0] <= rmax_buff[0]) && 
                  (P_wrap.Pos[1] >= rmin_buff[1]) && (P_wrap.Pos[1] <= rmax_buff[1]) && 
                  (P_wrap.Pos[2] >= rmin_buff[2]) && (P_wrap.Pos[2] <= rmax_buff[2])) {

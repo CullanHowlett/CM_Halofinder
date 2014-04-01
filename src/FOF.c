@@ -35,9 +35,9 @@ void FOF(void) {
   if (ThisTask == 0) printf("Creating subcells...\n");
 
   // set grid of cells 
-  lcell[0]=Lx/Px;
-  lcell[1]=Ly/Py;
-  lcell[2]=Lz/Pz;
+  lcell[0]=(Lxmax-Lxmin)/Px;
+  lcell[1]=(Lymax-Lymin)/Py;
+  lcell[2]=(Lzmax-Lzmin)/Pz;
 
 #ifdef VARLINK
   // Creates the linking length lookup table
@@ -341,6 +341,19 @@ void Output_Halos(void) {
 #ifdef OUTPUT_PARTICLES
       fprintf(fp, "%12d\n", nhalos);
       for(i=0; i<nhalos; i++) {
+        j = ihalo[i];
+        double xh=0, yh=0, zh=0;
+        double vxh=0, vyh=0, vzh=0;
+        do {
+          xh += P[j-1].Pos[0];
+          yh += P[j-1].Pos[1];
+          zh += P[j-1].Pos[2];
+          vxh += P[j-1].Vel[0];
+          vyh += P[j-1].Vel[1];
+          vzh += P[j-1].Vel[2];
+          j=next[j];
+          if (j == ihalo[i]) break;
+        } while(1);
         fprintf(fp,"%12d %12.6f %12.6f %12.6f %12.6f %12.6f %12.6f\n", nparthalo[i], xh/nparthalo[i], yh/nparthalo[i], zh/nparthalo[i], vxh/nparthalo[i], vyh/nparthalo[i], vzh/nparthalo[i]);   
         j = ihalo[i];
 #ifdef PARTICLE_ID

@@ -17,7 +17,8 @@
 void Create_Link(void) {
  
   int i, status, iter = 0, iter_max = 2000;
-  double zmax = 1.0, lower = 0.0, upper = 3.0;
+  int Nlink = 1000;
+  double zmax = 1.0, lower = 0.0, upper = 200.0;
   const double link_sim = 0.2;
 
   // We first need to find the redshift corresponding to the maximum distance 

@@ -83,7 +83,7 @@ void Read_Data(void) {
           P_file = (struct part_data *)malloc(npartfile*sizeof(struct part_data));
           for (j=0; j<npartfile; j++) {
 #ifdef PARTICLE_ID
-            my_fread(&(P_file[j].ID), sizeof(unsigned long long), 1, fp);
+            my_fread(&(P_file[j].ID), sizeof(unsigned int), 1, fp);
 #endif
             for (k=0; k<3; k++) my_fread(&(P_file[j].Pos[k]), sizeof(float), 1, fp);
             for (k=0; k<3; k++) my_fread(&(P_file[j].Vel[k]), sizeof(float), 1, fp);
@@ -128,7 +128,7 @@ void Read_Data(void) {
 #ifdef PARTICLE_ID
       // Read in the particle ids
       my_fread(&dummy, sizeof(dummy), 1, fp);
-      for(j=0; j<npartfile; j++) my_fread(&(P_file[j].ID), sizeof(unsigned long long), 1, fp);
+      for(j=0; j<npartfile; j++) my_fread(&(P_file[j].ID), sizeof(unsigned int), 1, fp);
       my_fread(&dummy, sizeof(dummy), 1, fp);
 #endif
 
@@ -176,13 +176,13 @@ void Read_Data(void) {
       // For each particle we calculate which processor it should go to and count the number of particles
       // that are being sent to each processor
       for(j=0; j<npartfile; j++) {
-        if((P_file[j].Pos[0] < 0.0) || (P_file[j].Pos[0] > Lx) || (P_file[j].Pos[1] < 0.0) || (P_file[j].Pos[1] > Ly) || (P_file[j].Pos[2] < 0.0) || (P_file[j].Pos[2] > Lz)) {
+        if((P_file[j].Pos[0] < Lxmin) || (P_file[j].Pos[0] > Lxmax) || (P_file[j].Pos[1] < Lymin) || (P_file[j].Pos[1] > Lymax) || (P_file[j].Pos[2] < Lzmin) || (P_file[j].Pos[2] > Lzmax)) {
           Nout++;
           continue;
         } 
-        processor_comp[0]=(int)floor(Nx*(P_file[j].Pos[0]/Lx));
-        processor_comp[1]=(int)floor(Ny*(P_file[j].Pos[1]/Ly));
-        processor_comp[2]=(int)floor(Nz*(P_file[j].Pos[2]/Lz));
+        processor_comp[0]=(int)floor(Nx*(P_file[j].Pos[0]/(Lxmax-Lxmin)));
+        processor_comp[1]=(int)floor(Ny*(P_file[j].Pos[1]/(Lymax-Lymin)));
+        processor_comp[2]=(int)floor(Nz*(P_file[j].Pos[2]/(Lzmax-Lzmin)));
         if (processor_comp[0] >= Nx) processor_comp[0]--;
         if (processor_comp[1] >= Ny) processor_comp[1]--;
         if (processor_comp[2] >= Nz) processor_comp[2]--;
@@ -201,7 +201,7 @@ void Read_Data(void) {
         // and as such don't (in the end) pass the particle.
         for (k=0; k<3; k++) subscript[k]=0;
         for (k=-1; k<=1; k+=2) {
-          neighbour_x=(int)floor(Nx*((P_file[j].Pos[0]+k*boundarysize)/Lx));
+          neighbour_x=(int)floor(Nx*((P_file[j].Pos[0]+k*boundarysize)/(Lxmax-Lxmin)));
           if (neighbour_x != processor_comp[0]) {
 #ifndef PERIODIC
             if ((neighbour_x < 0) || (neighbour_x >= Nx)) continue;
@@ -210,7 +210,7 @@ void Read_Data(void) {
           }
         }
         for (k=-1; k<=1; k+=2) {
-          neighbour_y=(int)floor(Ny*((P_file[j].Pos[1]+k*boundarysize)/Ly));
+          neighbour_y=(int)floor(Ny*((P_file[j].Pos[1]+k*boundarysize)/(Lymax-Lymin)));
           if (neighbour_y != processor_comp[1]) {
 #ifndef PERIODIC
             if ((neighbour_y < 0) || (neighbour_y >= Ny)) continue;
@@ -219,7 +219,7 @@ void Read_Data(void) {
           }
         }
         for (k=-1; k<=1; k+=2) {
-          neighbour_z=(int)floor(Nz*((P_file[j].Pos[2]+k*boundarysize)/Lz));
+          neighbour_z=(int)floor(Nz*((P_file[j].Pos[2]+k*boundarysize)/(Lzmax-Lzmin)));
           if (neighbour_z != processor_comp[2]) {
 #ifndef PERIODIC
             if ((neighbour_z < 0) || (neighbour_z >= Nz)) continue;
@@ -304,10 +304,10 @@ void Read_Data(void) {
       // sent to the particular processor
       data_index = (int *)calloc(NTask,sizeof(int));
       for (j=0; j<npartfile; j++) {
-        if((P_file[j].Pos[0] < 0.0) || (P_file[j].Pos[0] > Lx) || (P_file[j].Pos[1] < 0.0) || (P_file[j].Pos[1] > Ly) || (P_file[j].Pos[2] < 0.0) || (P_file[j].Pos[2] > Lz)) continue;
-        processor_comp[0]=(int)floor(Nx*(P_file[j].Pos[0]/Lx));
-        processor_comp[1]=(int)floor(Ny*(P_file[j].Pos[1]/Ly));
-        processor_comp[2]=(int)floor(Nz*(P_file[j].Pos[2]/Lz));
+        if((P_file[j].Pos[0] < Lxmin) || (P_file[j].Pos[0] > Lxmax) || (P_file[j].Pos[1] < Lymin) || (P_file[j].Pos[1] > Lymax) || (P_file[j].Pos[2] < Lzmin) || (P_file[j].Pos[2] > Lzmax)) continue;
+        processor_comp[0]=(int)floor(Nx*(P_file[j].Pos[0]/(Lxmax-Lxmin)));
+        processor_comp[1]=(int)floor(Ny*(P_file[j].Pos[1]/(Lymax-Lymin)));
+        processor_comp[2]=(int)floor(Nz*(P_file[j].Pos[2]/(Lzmax-Lzmin)));
         if (processor_comp[0] >= Nx) processor_comp[0]--;
         if (processor_comp[1] >= Ny) processor_comp[1]--;
         if (processor_comp[2] >= Nz) processor_comp[2]--;
@@ -328,7 +328,7 @@ void Read_Data(void) {
         // to be put in the array multiple times in different locations.
         for (k=0; k<3; k++) subscript[k]=0;
         for (k=-1; k<=1; k+=2) {
-          neighbour_x=(int)floor(Nx*((P_file[j].Pos[0]+k*boundarysize)/Lx));
+          neighbour_x=(int)floor(Nx*((P_file[j].Pos[0]+k*boundarysize)/(Lxmax-Lxmin)));
           if (neighbour_x != processor_comp[0]) {
 #ifndef PERIODIC
             if ((neighbour_x < 0) || (neighbour_x >= Nx)) continue;
@@ -337,7 +337,7 @@ void Read_Data(void) {
           }
         }
         for (k=-1; k<=1; k+=2) {
-          neighbour_y=(int)floor(Ny*((P_file[j].Pos[1]+k*boundarysize)/Ly));
+          neighbour_y=(int)floor(Ny*((P_file[j].Pos[1]+k*boundarysize)/(Lymax-Lymin)));
           if (neighbour_y != processor_comp[1]) {
 #ifndef PERIODIC
             if ((neighbour_y < 0) || (neighbour_y >= Ny)) continue;
@@ -346,7 +346,7 @@ void Read_Data(void) {
           }
         }
         for (k=-1; k<=1; k+=2) {
-          neighbour_z=(int)floor(Nz*((P_file[j].Pos[2]+k*boundarysize)/Lz));
+          neighbour_z=(int)floor(Nz*((P_file[j].Pos[2]+k*boundarysize)/(Lzmax-Lzmin)));
           if (neighbour_z != processor_comp[2]) {
 #ifndef PERIODIC
             if ((neighbour_z < 0) || (neighbour_z >= Nz)) continue;
@@ -489,11 +489,11 @@ void Read_Data(void) {
 #ifdef PERIODIC
         // If we are using periodic boundary conditions then we have to wrap the particles 
         // passed over the periodic boundaries based on the boxsize
-        if (P_temp[m].Pos[0] > rmax_buff[0]) P_temp[m].Pos[0]=rmin[0]-(Lx-P_temp[m].Pos[0]);
+        if (P_temp[m].Pos[0] > rmax_buff[0]) P_temp[m].Pos[0]=rmin[0]-((Lxmax-Lxmin)-P_temp[m].Pos[0]);
         if (P_temp[m].Pos[0] < rmin_buff[0]) P_temp[m].Pos[0]=rmax[0]+P_temp[m].Pos[0];
-        if (P_temp[m].Pos[1] > rmax_buff[1]) P_temp[m].Pos[1]=rmin[1]-(Ly-P_temp[m].Pos[1]);
+        if (P_temp[m].Pos[1] > rmax_buff[1]) P_temp[m].Pos[1]=rmin[1]-((Lymax-Lymin)-P_temp[m].Pos[1]);
         if (P_temp[m].Pos[1] < rmin_buff[1]) P_temp[m].Pos[1]=rmax[1]+P_temp[m].Pos[1];
-        if (P_temp[m].Pos[2] > rmax_buff[2]) P_temp[m].Pos[2]=rmin[2]-(Lz-P_temp[m].Pos[2]);
+        if (P_temp[m].Pos[2] > rmax_buff[2]) P_temp[m].Pos[2]=rmin[2]-((Lzmax-Lzmin)-P_temp[m].Pos[2]);
         if (P_temp[m].Pos[2] < rmin_buff[2]) P_temp[m].Pos[2]=rmax[2]+P_temp[m].Pos[2];
         
 #endif

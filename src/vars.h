@@ -89,12 +89,14 @@ extern int Px, Py, Pz;            // The number of particles in the simulation (
 extern int Nx, Ny, Nz;            // The number of tasks in each direction
 extern int ninputfiles;           // The number of input files
 extern int starting_file;         // The first file to start from
-extern double Lx, Ly, Lz;         // The edge length of the whole simulation (Mpc/h)
+extern double Buffer;             // The amount of buffer memory to allocate to account for the inhomogeneity of the dark matter field
+extern double Lxmin, Lxmax;       // The x-boundaries of the simulation
+extern double Lymin, Lymax;       // The y-boundaries of the simulation
+extern double Lzmin, Lzmax;       // The z-boundaries of the simulation
 extern double nphalomin;          // The minimum number of particles per halo
 extern double linklength;         // The linking length (Mpc/h)
 extern double boundarysize;       // The size of the boundary region beyond each processor (Mpc/h)
 #ifdef VARLINK
-extern int Nlink;                            // The size of the linking length lookup table
 extern double Omega;                         // The matter density at z=0
 extern double Origin_x, Origin_y, Origin_z;  // The position of the origin
 #endif 

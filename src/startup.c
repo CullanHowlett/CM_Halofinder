@@ -12,7 +12,7 @@ void Set_Params(void) {
   // Check that the geometry matches the number of processors
   if (NTask != Nx*Ny*Nz) {
     if (ThisTask == 0) printf("The number of cells does not match the number of processors... Whoops!!\n");
-    ierr = MPI_Finalize();
+    FatalError("startup.c", 18);
   }
 
   // Check that the number of processors reading and writing is not greater than the number
@@ -33,16 +33,16 @@ void Set_Params(void) {
   Local_nz = ThisTask/(Nx*Ny);
   Local_ny = (ThisTask-Nx*Ny*Local_nz)/Nx;
   Local_nx = ThisTask-Nx*Local_ny-Nx*Ny*Local_nz;
-  rmin[0]=Local_nx*Lx/(double)Nx;
-  rmin[1]=Local_ny*Ly/(double)Ny;
-  rmin[2]=Local_nz*Lz/(double)Nz;
-  rmax[0]=rmin[0]+Lx/(double)Nx;
+  rmin[0]=Local_nx*((Lxmax-Lxmin)/(double)Nx)+Lxmin;
+  rmin[1]=Local_ny*((Lymax-Lymin)/(double)Ny)+Lymin;
+  rmin[2]=Local_nz*((Lzmax-Lzmin)/(double)Nz)+Lzmin;
+  rmax[0]=rmin[0]+((Lxmax-Lxmin)/(double)Nx);
   rmin_buff[0]=rmin[0]-boundarysize;
   rmax_buff[0]=rmax[0]+boundarysize;
-  rmax[1]=rmin[1]+Ly/(double)Ny;
+  rmax[1]=rmin[1]+((Lymax-Lymin)/(double)Ny);
   rmin_buff[1]=rmin[1]-boundarysize;
   rmax_buff[1]=rmax[1]+boundarysize;
-  rmax[2]=rmin[2]+Lz/(double)Nz;
+  rmax[2]=rmin[2]+((Lzmax-Lzmin)/(double)Nz);
   rmin_buff[2]=rmin[2]-boundarysize;
   rmax_buff[2]=rmax[2]+boundarysize;
 #ifndef PERIODIC
@@ -62,9 +62,9 @@ void Set_Params(void) {
   // the origin is located and set the minimum distance to the origin for that processor to 0 explicitly. 
   dmin = 0.0;
   dmax = 0.0;
-  origin_processor_comp[0]=int(floor(Nx*(Origin_x/Lx)));
-  origin_processor_comp[1]=int(floor(Ny*(Origin_y/Ly)));
-  origin_processor_comp[2]=int(floor(Nz*(Origin_z/Lz)));
+  origin_processor_comp[0]=int(floor(Nx*(Origin_x/(Lxmax-Lxmin))));
+  origin_processor_comp[1]=int(floor(Ny*(Origin_y/(Lymax-Lymin))));
+  origin_processor_comp[2]=int(floor(Nz*(Origin_z/(Lzmax-Lzmin))));
   if (ThisTask == 0) {
     if ((origin_processor_comp[0] >= Nx) || (origin_processor_comp[0] < 0) ||
         (origin_processor_comp[1] >= Ny) || (origin_processor_comp[1] < 0) ||
@@ -101,13 +101,13 @@ void Set_Params(void) {
 
   // Creates space for the particle data (including extra space for the boundary particles based on the
   // percentage of particles found in the boundaries)
-  extra=2*(Nx*(boundarysize/Lx)+Ny*(boundarysize/Ly)+Nz*(boundarysize/Lz));
-  extra=extra+4*Nx*Ny*(boundarysize/Lx)*(boundarysize/Ly);
-  extra=extra+4*Nx*Nz*(boundarysize/Lx)*(boundarysize/Lz);
-  extra=extra+4*Ny*Nz*(boundarysize/Ly)*(boundarysize/Lz);
-  extra=extra+8*Nx*Ny*Nz*(boundarysize/Lx)*(boundarysize/Ly)*(boundarysize/Lz);
+  extra=2*(Nx*(boundarysize/(Lxmax-Lxmin))+Ny*(boundarysize/(Lymax-Lymin))+Nz*(boundarysize/(Lzmax-Lzmin)));
+  extra=extra+4*Nx*Ny*(boundarysize/(Lxmax-Lxmin))*(boundarysize/(Lymax-Lymin));
+  extra=extra+4*Nx*Nz*(boundarysize/(Lxmax-Lxmin))*(boundarysize/(Lzmax-Lzmin));
+  extra=extra+4*Ny*Nz*(boundarysize/(Lymax-Lymin))*(boundarysize/(Lzmax-Lzmin));
+  extra=extra+8*Nx*Ny*Nz*(boundarysize/(Lxmax-Lxmin))*(boundarysize/(Lymax-Lymin))*(boundarysize/(Lzmax-Lzmin));
 
-  maxparticles=(unsigned int)ceil(1.15*(1.0+extra)*((unsigned int)Px/Nx)*((unsigned int)Py/Ny)*((unsigned int)Pz/Nz));
+  maxparticles=(unsigned int)ceil(Buffer*(1.0+extra)*((unsigned int)Px/Nx)*((unsigned int)Py/Ny)*((unsigned int)Pz/Nz));
 
   P = (struct part_data *)malloc(maxparticles*sizeof(struct part_data));
 
@@ -189,16 +189,32 @@ void Read_Parameterfile(char * fname) {
   addr[nt] = &nwrite;
   id[nt++] = INT;
 
-  strcpy(tag[nt], "Lx");
-  addr[nt] = &Lx;
+  strcpy(tag[nt], "Buffer");
+  addr[nt] = &Buffer;
   id[nt++] = FLOAT;
 
-  strcpy(tag[nt], "Ly");
-  addr[nt] = &Ly;
+  strcpy(tag[nt], "Lxmin");
+  addr[nt] = &Lxmin;
   id[nt++] = FLOAT;
 
-  strcpy(tag[nt], "Lz");
-  addr[nt] = &Lz;
+  strcpy(tag[nt], "Lymin");
+  addr[nt] = &Lymin;
+  id[nt++] = FLOAT;
+
+  strcpy(tag[nt], "Lzmin");
+  addr[nt] = &Lzmin;
+  id[nt++] = FLOAT;
+
+  strcpy(tag[nt], "Lxmax");
+  addr[nt] = &Lxmax;
+  id[nt++] = FLOAT;
+
+  strcpy(tag[nt], "Lymax");
+  addr[nt] = &Lymax;
+  id[nt++] = FLOAT;
+
+  strcpy(tag[nt], "Lzmax");
+  addr[nt] = &Lzmax;
   id[nt++] = FLOAT;
 
   strcpy(tag[nt], "Boundarysize");
@@ -217,10 +233,6 @@ void Read_Parameterfile(char * fname) {
   strcpy(tag[nt], "Omega");
   addr[nt] = &Omega;
   id[nt++] = FLOAT;
-
-  strcpy(tag[nt], "Nlink");
-  addr[nt] = &Nlink;
-  id[nt++] = INT;
 
   strcpy(tag[nt], "Origin_x");
   addr[nt] = &Origin_x;

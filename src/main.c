@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
 #endif
     printf("Simulation:\n");
     printf("  Particles(x, y, z) = %d, %d, %d\n", Px, Py, Pz);
-    printf("  Boxsize(x, y, z) = %lf, %lf, %lf\n", Lx, Ly, Lz);
+    printf("  Boxsize(x, y, z) = %lf, %lf, %lf\n", Lxmax-Lxmin, Lymax-Lymin, Lzmax-Lzmin);
     printf("  Boundary size = %lf\n", boundarysize);
     printf("  Linking Length = %lf\n", linklength);
     printf("  Particles per Halo = %lf\n", nphalomin);
