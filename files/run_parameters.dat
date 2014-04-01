@@ -6,19 +6,23 @@ InputFileBase     ics_PICOLA_corr_L800_N256_R5001_unformatted_lightcone
 OutputDir  /mnt/lustre/manera/NBody/PICOLA_previous/L800_N256_R5001/
 OutputFileBase     CM_HALOFINDER_ics_PICOLA_corr_L800_N256_R5001_readinfo_unformatted_lightcone
 
-Nx    2                      % The number of processors in the x, y and z directions respectively
-Ny    2
-Nz    2
+Nx    4                      % The number of processors in the x, y and z directions respectively
+Ny    4
+Nz    4
 
-Px       256          % The number of particles in the simulation in the x, y and z directions
-Py       512
+Px       768          % The number of particles in the simulation in the x, y and z directions
+Py       768
 Pz       768
 
-Lx         800          % The edge length of the simulation in Mpc in the x, y and z directions
-Ly         1600 
-Lz         2400
+Lxmin         0.0          % The boundaries of the simulation region
+Lymin         0.0 
+Lzmin         0.0
+Lxmax         2400.0
+Lymax         2400.0
+Lzmax         2400.0
 
-Boundarysize    35           % The size of the boundary region given to each processor in Mpc (In tests minimum was 20)
+Buffer          1.3        % The multiplicative buffer to account for the fact the dark matter field is inhomogeneous (1.15 should be enough)
+Boundarysize    35           % The size of the boundary region given to each processor in Mpc/h (In tests minimum was 20)
 
 Linklength      0.625       % The linking length (Mpc/h)
 Nphalomin       10           % The minimum number of particles to consitute a halo
@@ -31,7 +35,6 @@ Nwrite          8           % The number of processors writing out at once (usua
 
 % Only needed for the Varlink option (otherwise must comment out)
 %Omega           0.25         % The Matter density at z=0
-%Nlink           1000         % The size of the linking length lookup table
 %Origin_x        0.0          % The position of the origin
 %Origin_y        0.0
 %Origin_z        0.0
