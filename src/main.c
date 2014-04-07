@@ -86,7 +86,7 @@ size_t my_fread(void *ptr, size_t size, size_t nmemb, FILE * stream)
 
   if((nread = fread(ptr, size, nmemb, stream)) != nmemb)
     {
-      printf("I/O error (fread) on task=%d has occured\n", ThisTask);
+      printf("\nERROR: I/O error (fread) on task=%d has occured\n\n", ThisTask);
       fflush(stdout);
       FatalError("read_data.c", 441);
     }
@@ -96,7 +96,7 @@ size_t my_fread(void *ptr, size_t size, size_t nmemb, FILE * stream)
 // Error message
 // =============
 void FatalError(char * filename, int linenum) {
-  printf("Fatal Error at line %d in file %s\n", linenum, filename);
+  printf("Fatal Error at line %d in file %s\n\n", linenum, filename);
   fflush(stdout);
   MPI_Abort(MPI_COMM_WORLD, 1);
   exit(1);
