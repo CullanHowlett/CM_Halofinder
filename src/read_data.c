@@ -21,6 +21,11 @@ void Read_Data(void) {
   unsigned int j, m, n, npartfile=0, Nout=0, Nout_glob=0; 
   unsigned int nparticles_sum, nparticles_recv_sum;
   struct part_data * P_file=NULL, * P_sorted, * P_temp;
+#ifdef PARTICLE_ID
+  struct part_data_id * P_sorted_id, * P_temp_id;
+#endif
+  struct part_data_pos * P_sorted_pos, * P_temp_pos;
+  struct part_data_vel * P_sorted_vel, * P_temp_vel;
 #ifdef GADGET_STYLE
   int dummy;
 #ifdef LIGHTCONE
@@ -228,10 +233,6 @@ void Read_Data(void) {
         processor_number=Ny*Nx*processor_comp[2]+Nx*processor_comp[1]+processor_comp[0];
         nparticles[processor_number]++;
 
-        if (ThisTask == 0) {
-          if (j < 100) printf("%f, %f, %f, %d\n", P_file[j].Pos[0], P_file[j].Pos[1], P_file[j].Pos[2], processor_number);
-        } 
-
         // This section loops over each particle and for each particle we calculate the processor the particle would be
         // on if it had a position displaced by the boundarysize. We then produce an array of three numbers (x, y, z) that
         // indicate  which of the boundaries the particle is associated with. The number itself can be either 0, -1 or 1:
@@ -314,7 +315,6 @@ void Read_Data(void) {
           processor_number=Ny*Nx*neighbour_z+Nx*processor_comp[1]+processor_comp[0];
           nparticles[processor_number]++;
         } 
-
       }
     }
       
@@ -333,14 +333,19 @@ void Read_Data(void) {
       cnparticles_recv[k]  = cnparticles_recv[k-1]+nparticles_recv[k-1];
     }
 
-    P_sorted = (struct part_data *)malloc(nparticles_sum*sizeof(struct part_data));
-    
+    //P_sorted = (struct part_data *)malloc(nparticles_sum*sizeof(struct part_data));
+#ifdef PARTICLE_ID
+    P_sorted_id = (struct part_data_id *)malloc(nparticles_sum*sizeof(struct part_data_id));
+#endif
+    P_sorted_pos = (struct part_data_pos *)malloc(nparticles_sum*sizeof(struct part_data_pos));
+    P_sorted_vel = (struct part_data_vel *)malloc(nparticles_sum*sizeof(struct part_data_vel));
+
     if (file_exists) {
-      printf("Task %d sending %u particles...\n", ThisTask, nparticles_sum);
+      printf("Task %d sending %u particles...\n", ThisTask, nparticles_sum-NTask);
       fflush(stdout);
     }
     MPI_Barrier(MPI_COMM_WORLD);
-    printf("Task %d receiving %u particles...\n", ThisTask, nparticles_recv_sum);
+    printf("Task %d receiving %u particles...\n", ThisTask, nparticles_recv_sum-NTask);
     fflush(stdout);
           
     if (nparticles_tot+nparticles_recv_sum-NTask >= maxparticles) {
@@ -367,15 +372,18 @@ void Read_Data(void) {
 
         processor_number=Ny*Nx*processor_comp[2]+Nx*processor_comp[1]+processor_comp[0];
 #ifdef PARTICLE_ID
-        P_sorted[cnparticles[processor_number]+data_index[processor_number]].ID = P_file[j].ID;
+        //P_sorted[cnparticles[processor_number]+data_index[processor_number]].ID = P_file[j].ID;
+        P_sorted_id[cnparticles[processor_number]+data_index[processor_number]].ID = P_file[j].ID;
 #endif
         for (k=0; k<3; k++) {
-          P_sorted[cnparticles[processor_number]+data_index[processor_number]].Pos[k] = P_file[j].Pos[k];
-          P_sorted[cnparticles[processor_number]+data_index[processor_number]].Vel[k] = P_file[j].Vel[k];
+          //P_sorted[cnparticles[processor_number]+data_index[processor_number]].Pos[k] = P_file[j].Pos[k];
+          //P_sorted[cnparticles[processor_number]+data_index[processor_number]].Vel[k] = P_file[j].Vel[k];
+          P_sorted_pos[cnparticles[processor_number]+data_index[processor_number]].Pos[k] = P_file[j].Pos[k];
+          P_sorted_vel[cnparticles[processor_number]+data_index[processor_number]].Vel[k] = P_file[j].Vel[k];
         }
         data_index[processor_number]++;
 
-        // This is a repeat of the above process, looping over each particle  and ding which boundaries it
+        // This is a repeat of the above process, looping over each particle  and finding which boundaries it
         // is near. This time however we store the particle data itself in a single array taking care to note that,
         // as with the particle counts, a single particles may have to be given to more than one neighbour and as such have
         // to be put in the array multiple times in different locations.
@@ -425,31 +433,40 @@ void Read_Data(void) {
         if (subscript[0] != 0) {
           processor_number=Ny*Nx*processor_comp[2]+Nx*processor_comp[1]+neighbour_x;
 #ifdef PARTICLE_ID
-          P_sorted[cnparticles[processor_number]+data_index[processor_number]].ID = P_file[j].ID;
+          //P_sorted[cnparticles[processor_number]+data_index[processor_number]].ID = P_file[j].ID;
+          P_sorted_id[cnparticles[processor_number]+data_index[processor_number]].ID = P_file[j].ID;
 #endif
           for (k=0; k<3; k++) {
-            P_sorted[cnparticles[processor_number]+data_index[processor_number]].Pos[k] = P_file[j].Pos[k];
-            P_sorted[cnparticles[processor_number]+data_index[processor_number]].Vel[k] = P_file[j].Vel[k];
+            //P_sorted[cnparticles[processor_number]+data_index[processor_number]].Pos[k] = P_file[j].Pos[k];
+            //P_sorted[cnparticles[processor_number]+data_index[processor_number]].Vel[k] = P_file[j].Vel[k];
+            P_sorted_pos[cnparticles[processor_number]+data_index[processor_number]].Pos[k] = P_file[j].Pos[k];
+            P_sorted_vel[cnparticles[processor_number]+data_index[processor_number]].Vel[k] = P_file[j].Vel[k];
           }
           data_index[processor_number]++;
           if (subscript[1] != 0) {
             processor_number=Ny*Nx*processor_comp[2]+Nx*neighbour_y+neighbour_x;
 #ifdef PARTICLE_ID
-            P_sorted[cnparticles[processor_number]+data_index[processor_number]].ID = P_file[j].ID;
-#endif
+            //P_sorted[cnparticles[processor_number]+data_index[processor_number]].ID = P_file[j].ID;
+            P_sorted_id[cnparticles[processor_number]+data_index[processor_number]].ID = P_file[j].ID;
+#endif 
             for (k=0; k<3; k++) {
-              P_sorted[cnparticles[processor_number]+data_index[processor_number]].Pos[k] = P_file[j].Pos[k];
-              P_sorted[cnparticles[processor_number]+data_index[processor_number]].Vel[k] = P_file[j].Vel[k];
+              //P_sorted[cnparticles[processor_number]+data_index[processor_number]].Pos[k] = P_file[j].Pos[k];
+              //P_sorted[cnparticles[processor_number]+data_index[processor_number]].Vel[k] = P_file[j].Vel[k];
+              P_sorted_pos[cnparticles[processor_number]+data_index[processor_number]].Pos[k] = P_file[j].Pos[k];
+              P_sorted_vel[cnparticles[processor_number]+data_index[processor_number]].Vel[k] = P_file[j].Vel[k];
             }
             data_index[processor_number]++;
             if (subscript[2] != 0) {
               processor_number=Ny*Nx*neighbour_z+Nx*neighbour_y+neighbour_x;
 #ifdef PARTICLE_ID
-              P_sorted[cnparticles[processor_number]+data_index[processor_number]].ID = P_file[j].ID;
+              //P_sorted[cnparticles[processor_number]+data_index[processor_number]].ID = P_file[j].ID;
+              P_sorted_id[cnparticles[processor_number]+data_index[processor_number]].ID = P_file[j].ID;
 #endif
               for (k=0; k<3; k++) {
-                P_sorted[cnparticles[processor_number]+data_index[processor_number]].Pos[k] = P_file[j].Pos[k];
-                P_sorted[cnparticles[processor_number]+data_index[processor_number]].Vel[k] = P_file[j].Vel[k];
+                //P_sorted[cnparticles[processor_number]+data_index[processor_number]].Pos[k] = P_file[j].Pos[k];
+                //P_sorted[cnparticles[processor_number]+data_index[processor_number]].Vel[k] = P_file[j].Vel[k];
+                P_sorted_pos[cnparticles[processor_number]+data_index[processor_number]].Pos[k] = P_file[j].Pos[k];
+                P_sorted_vel[cnparticles[processor_number]+data_index[processor_number]].Vel[k] = P_file[j].Vel[k];
               }
               data_index[processor_number]++;
             }
@@ -457,11 +474,14 @@ void Read_Data(void) {
           if (subscript[2] != 0) {
             processor_number=Ny*Nx*neighbour_z+Nx*processor_comp[1]+neighbour_x;
 #ifdef PARTICLE_ID
-            P_sorted[cnparticles[processor_number]+data_index[processor_number]].ID = P_file[j].ID;
+            //P_sorted[cnparticles[processor_number]+data_index[processor_number]].ID = P_file[j].ID;
+            P_sorted_id[cnparticles[processor_number]+data_index[processor_number]].ID = P_file[j].ID;
 #endif
             for (k=0; k<3; k++) {
-              P_sorted[cnparticles[processor_number]+data_index[processor_number]].Pos[k] = P_file[j].Pos[k];
-              P_sorted[cnparticles[processor_number]+data_index[processor_number]].Vel[k] = P_file[j].Vel[k];
+              //P_sorted[cnparticles[processor_number]+data_index[processor_number]].Pos[k] = P_file[j].Pos[k];
+              //P_sorted[cnparticles[processor_number]+data_index[processor_number]].Vel[k] = P_file[j].Vel[k];
+              P_sorted_pos[cnparticles[processor_number]+data_index[processor_number]].Pos[k] = P_file[j].Pos[k];
+              P_sorted_vel[cnparticles[processor_number]+data_index[processor_number]].Vel[k] = P_file[j].Vel[k];
             }
             data_index[processor_number]++;
           }
@@ -469,21 +489,27 @@ void Read_Data(void) {
         if (subscript[1] != 0) {
           processor_number=Ny*Nx*processor_comp[2]+Nx*neighbour_y+processor_comp[0];
 #ifdef PARTICLE_ID
-          P_sorted[cnparticles[processor_number]+data_index[processor_number]].ID = P_file[j].ID;
+          //P_sorted[cnparticles[processor_number]+data_index[processor_number]].ID = P_file[j].ID;
+          P_sorted_id[cnparticles[processor_number]+data_index[processor_number]].ID = P_file[j].ID;
 #endif
           for (k=0; k<3; k++) {
-            P_sorted[cnparticles[processor_number]+data_index[processor_number]].Pos[k] = P_file[j].Pos[k];
-            P_sorted[cnparticles[processor_number]+data_index[processor_number]].Vel[k] = P_file[j].Vel[k];
+            //P_sorted[cnparticles[processor_number]+data_index[processor_number]].Pos[k] = P_file[j].Pos[k];
+            //P_sorted[cnparticles[processor_number]+data_index[processor_number]].Vel[k] = P_file[j].Vel[k];
+            P_sorted_pos[cnparticles[processor_number]+data_index[processor_number]].Pos[k] = P_file[j].Pos[k];
+            P_sorted_vel[cnparticles[processor_number]+data_index[processor_number]].Vel[k] = P_file[j].Vel[k];
           }
           data_index[processor_number]++;
           if (subscript[2] != 0) {
             processor_number=Ny*Nx*neighbour_z+Nx*neighbour_y+processor_comp[0];
 #ifdef PARTICLE_ID
-            P_sorted[cnparticles[processor_number]+data_index[processor_number]].ID = P_file[j].ID;
+            //P_sorted[cnparticles[processor_number]+data_index[processor_number]].ID = P_file[j].ID;
+            P_sorted_id[cnparticles[processor_number]+data_index[processor_number]].ID = P_file[j].ID;
 #endif
             for (k=0; k<3; k++) {
-              P_sorted[cnparticles[processor_number]+data_index[processor_number]].Pos[k] = P_file[j].Pos[k];
-              P_sorted[cnparticles[processor_number]+data_index[processor_number]].Vel[k] = P_file[j].Vel[k];
+              //P_sorted[cnparticles[processor_number]+data_index[processor_number]].Pos[k] = P_file[j].Pos[k];
+              //P_sorted[cnparticles[processor_number]+data_index[processor_number]].Vel[k] = P_file[j].Vel[k];
+              P_sorted_pos[cnparticles[processor_number]+data_index[processor_number]].Pos[k] = P_file[j].Pos[k];
+              P_sorted_vel[cnparticles[processor_number]+data_index[processor_number]].Vel[k] = P_file[j].Vel[k];
             }
             data_index[processor_number]++;
           }
@@ -491,22 +517,30 @@ void Read_Data(void) {
         if (subscript[2] != 0) {
           processor_number=Ny*Nx*neighbour_z+Nx*processor_comp[1]+processor_comp[0];
 #ifdef PARTICLE_ID
-          P_sorted[cnparticles[processor_number]+data_index[processor_number]].ID = P_file[j].ID;
+          //P_sorted[cnparticles[processor_number]+data_index[processor_number]].ID = P_file[j].ID;
+          P_sorted_id[cnparticles[processor_number]+data_index[processor_number]].ID = P_file[j].ID;
 #endif
           for (k=0; k<3; k++) {
-            P_sorted[cnparticles[processor_number]+data_index[processor_number]].Pos[k] = P_file[j].Pos[k];
-            P_sorted[cnparticles[processor_number]+data_index[processor_number]].Vel[k] = P_file[j].Vel[k];
+            //P_sorted[cnparticles[processor_number]+data_index[processor_number]].Pos[k] = P_file[j].Pos[k];
+            //P_sorted[cnparticles[processor_number]+data_index[processor_number]].Vel[k] = P_file[j].Vel[k];
+            P_sorted_pos[cnparticles[processor_number]+data_index[processor_number]].Pos[k] = P_file[j].Pos[k];
+            P_sorted_vel[cnparticles[processor_number]+data_index[processor_number]].Vel[k] = P_file[j].Vel[k];
           }
           data_index[processor_number]++;
         }
       }
-      free(data_index); 
+      free(data_index);
       free(P_file);
     }
 
-    P_temp = (struct part_data *)malloc(nparticles_recv_sum*sizeof(struct part_data));
+    //P_temp = (struct part_data *)malloc(nparticles_recv_sum*sizeof(struct part_data));
+#ifdef PARTICLE_ID
+    P_temp_id = (struct part_data_id *)malloc(nparticles_recv_sum*sizeof(struct part_data_id));
+#endif
+    P_temp_pos = (struct part_data_pos *)malloc(nparticles_recv_sum*sizeof(struct part_data_pos));
+    P_temp_vel = (struct part_data_vel *)malloc(nparticles_recv_sum*sizeof(struct part_data_vel));
 
-    for (k=0; k<NTask; k++) {
+    /*for (k=0; k<NTask; k++) {
       nparticles[k]       *= sizeof(struct part_data);
       nparticles_recv[k]  *= sizeof(struct part_data);
       cnparticles[k]      *= sizeof(struct part_data);
@@ -519,7 +553,47 @@ void Read_Data(void) {
     }
 
     ierr = MPI_Alltoallv(&(P_sorted[0]), &(nparticles[0]), &(cnparticles[0]), MPI_BYTE, &(P_temp[0]),
+                         &(nparticles_recv[0]), &(cnparticles_recv[0]), MPI_BYTE, MPI_COMM_WORLD);*/
+
+    if (ThisTask == 0) {
+      printf("Transferring data...\n");
+      fflush(stdout);
+    }
+
+#ifdef PARTICLE_ID
+
+    for (k=0; k<NTask; k++) {
+      nparticles[k]       *= sizeof(struct part_data_id);
+      nparticles_recv[k]  *= sizeof(struct part_data_id);
+      cnparticles[k]      *= sizeof(struct part_data_id);
+      cnparticles_recv[k] *= sizeof(struct part_data_id);
+    }
+
+    ierr = MPI_Alltoallv(&(P_sorted_id[0]), &(nparticles[0]), &(cnparticles[0]), MPI_BYTE, &(P_temp_id[0]),
                          &(nparticles_recv[0]), &(cnparticles_recv[0]), MPI_BYTE, MPI_COMM_WORLD);
+
+    for (k=0; k<NTask; k++) {
+      nparticles[k]       /= sizeof(struct part_data_id);
+      nparticles_recv[k]  /= sizeof(struct part_data_id);
+      cnparticles[k]      /= sizeof(struct part_data_id);
+      cnparticles_recv[k] /= sizeof(struct part_data_id);
+    }
+
+#endif
+
+   for (k=0; k<NTask; k++) {
+      nparticles[k]       *= sizeof(struct part_data_pos);
+      nparticles_recv[k]  *= sizeof(struct part_data_pos);
+      cnparticles[k]      *= sizeof(struct part_data_pos);
+      cnparticles_recv[k] *= sizeof(struct part_data_pos);
+    }
+
+    ierr = MPI_Alltoallv(&(P_sorted_pos[0]), &(nparticles[0]), &(cnparticles[0]), MPI_BYTE, &(P_temp_pos[0]),
+                         &(nparticles_recv[0]), &(cnparticles_recv[0]), MPI_BYTE, MPI_COMM_WORLD);
+
+    ierr = MPI_Alltoallv(&(P_sorted_vel[0]), &(nparticles[0]), &(cnparticles[0]), MPI_BYTE, &(P_temp_vel[0]),
+                         &(nparticles_recv[0]), &(cnparticles_recv[0]), MPI_BYTE, MPI_COMM_WORLD);
+
 
 #ifdef GADGET_STYLE
 #ifndef LIGHTCONE
@@ -529,11 +603,21 @@ void Read_Data(void) {
     free(nparticles);
 #endif
     free(cnparticles);
-    free(P_sorted);
+    //free(P_sorted);
+#ifdef PARTICLE_ID
+    free(P_sorted_id);
+#endif
+    free(P_sorted_pos);
+    free(P_sorted_vel);
+
+    //for (k=0; k<NTask; k++) {
+    //  nparticles_recv[k]  /= sizeof(struct part_data);
+    //  cnparticles_recv[k] /= sizeof(struct part_data);
+    //}
 
     for (k=0; k<NTask; k++) {
-      nparticles_recv[k]  /= sizeof(struct part_data);
-      cnparticles_recv[k] /= sizeof(struct part_data);
+      nparticles_recv[k]  /= sizeof(struct part_data_pos);
+      cnparticles_recv[k] /= sizeof(struct part_data_pos);
     }
 
 #ifdef PERIODIC
@@ -543,7 +627,7 @@ void Read_Data(void) {
     }
 #endif
 
-    for (k=0; k<NTask; k++) {
+/*    for (k=0; k<NTask; k++) {
       for (q=0; q<nparticles_recv[k]-1; q++) {
         m=cnparticles_recv[k]+q;
         n=nparticles_tot+(unsigned int)q;
@@ -574,6 +658,39 @@ void Read_Data(void) {
 
       }
       nparticles_tot += (nparticles_recv[k]-1);
+    }*/
+
+    for (k=0; k<NTask; k++) {
+      for (q=0; q<nparticles_recv[k]-1; q++) {
+        m=cnparticles_recv[k]+q;
+        n=nparticles_tot+(unsigned int)q;
+#ifdef PERIODIC
+        // If we are using periodic boundary conditions then we have to wrap the particles 
+        // passed over the periodic boundaries based on the boxsize
+        if (P_temp_pos[m].Pos[0] > rmax_buff[0]) P_temp_pos[m].Pos[0]=rmin[0]-((Lxmax-Lxmin)-P_temp_pos[m].Pos[0]);
+        if (P_temp_pos[m].Pos[0] < rmin_buff[0]) P_temp_pos[m].Pos[0]=rmax[0]+P_temp_pos[m].Pos[0];
+        if (P_temp_pos[m].Pos[1] > rmax_buff[1]) P_temp_pos[m].Pos[1]=rmin[1]-((Lymax-Lymin)-P_temp_pos[m].Pos[1]);
+        if (P_temp_pos[m].Pos[1] < rmin_buff[1]) P_temp_pos[m].Pos[1]=rmax[1]+P_temp_pos[m].Pos[1];
+        if (P_temp_pos[m].Pos[2] > rmax_buff[2]) P_temp_pos[m].Pos[2]=rmin[2]-((Lzmax-Lzmin)-P_temp_pos[m].Pos[2]);
+        if (P_temp_pos[m].Pos[2] < rmin_buff[2]) P_temp_pos[m].Pos[2]=rmax[2]+P_temp_pos[m].Pos[2];
+        
+#endif
+#ifdef PARTICLE_ID
+        P[n].ID = P_temp_id[m].ID;
+#endif
+        for (j=0; j<3; j++) {
+          P[n].Pos[j] = P_temp_pos[m].Pos[j];
+          P[n].Vel[j] = P_temp_vel[m].Vel[j];
+        }
+   
+        // This is a simple check that each processor does to make sure that every particle on the processor 
+        // is within the previously calculated boundaries for that processor
+        if((P[n].Pos[0] > rmax_buff[0]) || (P[n].Pos[0] < rmin_buff[0])) { printf("\nERROR: Task %d has incorrect particle in the x-direction: %lf, %lf, %lf\n\n", ThisTask, P[n].Pos[0], P[n].Pos[1], P[n].Pos[2]); FatalError("read_data.c", 408);}
+        if((P[n].Pos[1] > rmax_buff[1]) || (P[n].Pos[1] < rmin_buff[1])) { printf("\nERROR: Task %d has incorrect particle in the y-direction: %lf, %lf, %lf\n\n", ThisTask, P[n].Pos[0], P[n].Pos[1], P[n].Pos[2]); FatalError("read_data.c", 409);}
+        if((P[n].Pos[2] > rmax_buff[2]) || (P[n].Pos[2] < rmin_buff[2])) { printf("\nERROR: Task %d has incorrect particle in the z-direction: %lf, %lf, %lf\n\n", ThisTask, P[n].Pos[0], P[n].Pos[1], P[n].Pos[2]); FatalError("read_data.c", 410);}
+
+      }
+      nparticles_tot += (nparticles_recv[k]-1);
     }
 
 #ifdef GADGET_STYLE
@@ -584,7 +701,12 @@ void Read_Data(void) {
     free(nparticles_recv);
 #endif
     free(cnparticles_recv);
-    free(P_temp);
+    //free(P_temp);
+#ifdef PARTICLE_ID
+    free(P_temp_id);
+#endif
+    free(P_temp_pos);
+    free(P_temp_vel);
 
     ierr = MPI_Barrier(MPI_COMM_WORLD);
     if (ThisTask == 0) { 
