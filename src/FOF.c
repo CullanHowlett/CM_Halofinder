@@ -281,13 +281,16 @@ void Checkhalo(unsigned int i) {
   j=i;
   do {
     if ((P[j-1].Pos[0]-rmin_buff[0] < linklength) || (rmax_buff[0]-P[j-1].Pos[0] < linklength)) {
-      printf("Particle very near boundary in x-direction. Repeat run with increased boundary size\n");
+      printf("\nWARNING: Particle very near boundary in x-direction. Halos may be incorrect\n");
+      printf("         We highly recommend repeating the run with increased boundary size.\n\n");
     }
     if ((P[j-1].Pos[1]-rmin_buff[1] < linklength) || (rmax_buff[1]-P[j-1].Pos[1] < linklength)) {
-      printf("Particle very near boundary in y-direction. Repeat run with increased boundary size\n");
+      printf("\nWARNING: Particle very near boundary in y-direction. Halos may be incorrect\n");
+      printf("         We highly recommend repeating the run with increased boundary size.\n\n");
     }
     if ((P[j-1].Pos[2]-rmin_buff[2] < linklength) || (rmax_buff[2]-P[j-1].Pos[2] < linklength)) {
-      printf("Particle very near boundary in z-direction. Repeat run with increased boundary size\n");
+      printf("\nWARNING: Particle very near boundary in z-direction. Halos may be incorrect\n");
+      printf("         We highly recommend repeating the run with increased boundary size.\n\n");
     }
     j=next[j];
     if (j == i) break;
@@ -335,8 +338,8 @@ void Output_Halos(void) {
     if (ThisTask == (masterTask + groupTask)) {
       sprintf(buf, "%s/%s.%d", OutputDir, OutputFileBase, ThisTask);
       if(!(fp = fopen(buf, "w"))) {
-        printf("Error. Can't write in file '%s'\n", buf);
-        MPI_Abort(MPI_COMM_WORLD, 10);
+        printf("\nError: Unable to open output file %s.\n\n", buf);
+        FatalError("FOF.c", 342);
       }
 #ifdef OUTPUT_PARTICLES
       fprintf(fp, "%12d\n", nhalos);

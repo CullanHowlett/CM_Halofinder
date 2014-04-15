@@ -11,18 +11,18 @@ void Set_Params(void) {
 
   // Check that the geometry matches the number of processors
   if (NTask != Nx*Ny*Nz) {
-    if (ThisTask == 0) printf("The number of cells does not match the number of processors... Whoops!!\n");
+    if (ThisTask == 0) printf("\nERROR: The number of cells does not match the number of processors... Whoops!!\n\n");
     FatalError("startup.c", 18);
   }
 
   // Check that the number of processors reading and writing is not greater than the number
   // of processors otherwise we might not read in or write out all the data
   if (nread > NTask) {
-    if (ThisTask == 0) printf("Tried to read in with more processors than are being used...setting nread = NTask...\n");
+    if (ThisTask == 0) printf("\nWARNING: Tried to read in with more processors than are being used...setting nread = NTask...\n\n");
     nread=NTask;
   }
   if (nwrite > NTask) {
-    if (ThisTask == 0) printf("Tried to write halo data with more processors than are being used...setting nwrite = NTask...\n");
+    if (ThisTask == 0) printf("\nWARNING: Tried to write halo data with more processors than are being used...setting nwrite = NTask...\n\n");
     nwrite=NTask;
   }
 
@@ -69,7 +69,7 @@ void Set_Params(void) {
     if ((origin_processor_comp[0] >= Nx) || (origin_processor_comp[0] < 0) ||
         (origin_processor_comp[1] >= Ny) || (origin_processor_comp[1] < 0) ||
         (origin_processor_comp[2] >= Nz) || (origin_processor_comp[2] < 0)) 
-        printf("\nWARNING: origin out of simulation bounds (is this intentional?)\n");
+        printf("\nWARNING: origin out of simulation bounds (is this intentional?)\n\n");
   }
   dmin_buff[0] = (rmin_buff[0]-Origin_x)*(rmin_buff[0]-Origin_x);
   dmin_buff[1] = (rmin_buff[1]-Origin_y)*(rmin_buff[1]-Origin_y);
@@ -258,37 +258,37 @@ void Read_Parameterfile(char * fname) {
       for(i = 0, j = -1; i < nt; i++) {
         if(strcmp(buf1, tag[i]) == 0)  {
           j = i;
-	  tag[i][0] = 0;
-	  break;
-	}
+	        tag[i][0] = 0;
+	        break;
+        }
       }
       
       if(j >= 0) {
-	switch (id[j]) {
-	  case FLOAT:
-	    *((double *) addr[j]) = atof(buf2);
-	    break;
-	  case STRING:
-	    strcpy((char *)addr[j], buf2);
-	    break;
-	  case INT:
-	    *((int *) addr[j]) = atoi(buf2);
-	    break;
-	}
+	      switch (id[j]) {
+	        case FLOAT:
+	          *((double *) addr[j]) = atof(buf2);
+            break;
+          case STRING:
+	          strcpy((char *)addr[j], buf2);
+	          break;
+	        case INT:
+	          *((int *) addr[j]) = atoi(buf2);
+	          break;
+	      }
       } else {
-        if(ThisTask == 0) fprintf(stdout,"Error in file %s:  Tag '%s' not allowed or multiple defined.\n",fname,buf1);
-	errorFlag = 1;
+        if(ThisTask == 0) fprintf(stdout,"\nError: in run parameters file %s:  Tag '%s' not allowed or multiple defined.\n",fname,buf1);
+        errorFlag = 1;
       }
     }
     fclose(fd);
     for(i = 0; i < nt; i++) {
       if(*tag[i]) {
-        if(ThisTask == 0) fprintf(stdout, "Error. I miss a value for tag '%s' in parameter file '%s'.\n", tag[i], fname);
+        if(ThisTask == 0) fprintf(stdout, "\nError: I miss a value for tag '%s' in parameter file '%s'.\n\n", tag[i], fname);
         errorFlag = 1;
       }
     }
   } else {
-    if(ThisTask == 0) fprintf(stdout,"Parameter file %s not found.\n",fname);
+    if(ThisTask == 0) fprintf(stdout,"\ERROR: Parameter file %s not found.\n\n",fname);
     errorFlag = 1;
   }
 

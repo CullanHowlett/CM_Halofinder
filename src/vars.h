@@ -38,6 +38,17 @@ extern struct part_data {
 #endif
 } * P;
 
+// Seperated Particle Data
+#ifdef MEMORY_MODE
+extern struct part_data_half {
+  float Var[3];
+} * P_pos, * P_vel;
+#else
+extern struct part_data_half {
+  double Var[3];
+} * P_pos, * P_vel;
+#endif
+
 #ifdef VARLINK
 // The linking length lookup table
 extern gsl_spline * link_spline;

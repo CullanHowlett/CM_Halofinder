@@ -11,6 +11,9 @@ double rmin[3], rmax[3], rmin_buff[3], rmax_buff[3];  // The extents of each tas
 // Particle data
 struct part_data * P;
 
+// Seperated particle data
+struct part_data_half * P_pos, * P_vel;
+
 #ifdef VARLINK
 // The linking length lookup table
 gsl_spline * link_spline;
