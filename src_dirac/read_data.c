@@ -21,10 +21,10 @@ void Read_Data(void) {
   // spread over 32 files in double precision. In this case we could either: convert to single precision, increase the number of files
   // the input is spread over, or try and modify the particle data structures and pass over less information at a time.
   
-  FILE * fp=NULL;
+  FILE * fp;
   char buf[300];
   int i, imax, k, q;
-  int file_exists, filenumber=ninputfiles, nreadid;
+  int file_exists, filenumber, nreadid;
   int *readid, * data_index, * nparticles, * nparticles_recv, * cnparticles, * cnparticles_recv;
   int processor_number, neighbour_x, neighbour_y, neighbour_z, processor_comp[3], subscript[3];
   unsigned int j, m, n, npartfile=0, Nout=0, Nout_glob=0; 
@@ -36,10 +36,6 @@ void Read_Data(void) {
   struct part_data_half * P_sorted_pos, * P_sorted_vel, * P_temp_pos, * P_temp_vel;
 #ifdef GADGET_STYLE
   int dummy;
-  float val;
-#ifdef PARTICLE_ID
-  unsigned long long ival;
-#endif
 #ifdef LIGHTCONE
   int cont;
 #endif
@@ -102,7 +98,7 @@ void Read_Data(void) {
 // =======================
 #ifdef GADGET_STYLE
 
-// Lightcone
+// Lightcone (This will be very slow, if possible it may better to use the READ_INFO option)
 #ifdef LIGHTCONE
 
     if(file_exists) {
@@ -129,18 +125,10 @@ void Read_Data(void) {
           P_file = (struct part_data *)malloc(npartfile*sizeof(struct part_data));
           for (j=0; j<npartfile; j++) {
 #ifdef PARTICLE_ID
-            my_fread(&(id), sizeof(unsigned int), 1, fp);
-            P_file[j].ID = ival;
+            my_fread(&(P_file[j].ID), sizeof(unsigned int), 1, fp);
 #endif
-            for (k=0; k<3; k++) {
-              my_fread(&(val), sizeof(float), 1, fp);
-              P_file[j].Pos[k] = val;
-            }
-            for (k=0; k<3; k++) {
-              my_fread(&(val), sizeof(float), 1, fp);
-              P_file[j].Vel[k] = val;
-            }
-            if (filenumber >= 4) P_file[j].Pos[0] -= (Lxmax-Lxmin);
+            for (k=0; k<3; k++) my_fread(&(P_file[j].Pos[k]), sizeof(float), 1, fp);
+            for (k=0; k<3; k++) my_fread(&(P_file[j].Vel[k]), sizeof(float), 1, fp);
           }
           my_fread(&dummy, sizeof(dummy), 1, fp);
         } else {
@@ -172,29 +160,21 @@ void Read_Data(void) {
       // Read in the particle positions
       my_fread(&dummy, sizeof(dummy), 1, fp);
       for(j=0; j<npartfile; j++) {
-        for (k=0; k<3; k++) {
-          my_fread(&(val), sizeof(float), 1, fp);
-          P_file[j].Pos[k] = val;
+        for (k=0; k<3; k++) my_fread(&(P_file[j].Pos[k]), sizeof(float), 1, fp);
       }
       my_fread(&dummy, sizeof(dummy), 1, fp);
 
       // Read in the particle velocities
       my_fread(&dummy, sizeof(dummy), 1, fp);
       for(j=0; j<npartfile; j++) {
-        for (k=0; k<3; k++) {
-          my_fread(&(val), sizeof(float), 1, fp);
-          P_file[j].Vel[k] = val;
-        }
+        for (k=0; k<3; k++) my_fread(&(P_file[j].Vel[k]), sizeof(float), 1, fp);
       }
       my_fread(&dummy, sizeof(dummy), 1, fp);
 
 #ifdef PARTICLE_ID
       // Read in the particle ids
       my_fread(&dummy, sizeof(dummy), 1, fp);
-      for(j=0; j<npartfile; j++) {
-        my_fread(&(ival), sizeof(unsigned int), 1, fp);
-        P_file[j].ID = ival;
-      }
+      for(j=0; j<npartfile; j++) my_fread(&(P_file[j].ID), sizeof(unsigned int), 1, fp);
       my_fread(&dummy, sizeof(dummy), 1, fp);
 #endif
 
@@ -361,6 +341,7 @@ void Read_Data(void) {
       cnparticles_recv[k]  = cnparticles_recv[k-1]+nparticles_recv[k-1];
     }
 
+    //P_sorted = (struct part_data *)malloc(nparticles_sum*sizeof(struct part_data));
 #ifdef PARTICLE_ID
     P_sorted_id = (unsigned long long *)malloc(nparticles_sum*sizeof(unsigned long long));
 #endif
@@ -580,6 +561,7 @@ void Read_Data(void) {
 
     ierr = MPI_Alltoallv(&(P_sorted_vel[0]), &(nparticles[0]), &(cnparticles[0]), MPI_BYTE, &(P_temp_vel[0]),
                          &(nparticles_recv[0]), &(cnparticles_recv[0]), MPI_BYTE, MPI_COMM_WORLD);
+
 
 #ifdef GADGET_STYLE
 #ifndef LIGHTCONE
