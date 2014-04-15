@@ -12,11 +12,7 @@ double rmin[3], rmax[3], rmin_buff[3], rmax_buff[3];  // The extents of each tas
 struct part_data * P;
 
 // Seperated particle data
-#ifdef PARTICLE_ID
-struct part_data_id * P_id;
-#endif
-struct part_data_pos * P_pos;
-struct part_data_vel * P_vel;
+struct part_data_half * P_pos, * P_vel;
 
 #ifdef VARLINK
 // The linking length lookup table

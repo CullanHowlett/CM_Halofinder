@@ -39,25 +39,14 @@ extern struct part_data {
 } * P;
 
 // Seperated Particle Data
-#ifdef PARTICLE_ID
-extern struct part_data_id {
-  unsigned long long ID;
-} * P_id;
-#endif
 #ifdef MEMORY_MODE
-extern struct part_data_pos {
-  float Pos[3];
-} * P_pos;
-extern struct part_data_vel {
-  float Vel[3];
-} * P_vel;
+extern struct part_data_half {
+  float Var[3];
+} * P_pos, * P_vel;
 #else
-extern struct part_data_pos {
-  double Pos[3];
-} * P_pos;
-extern struct part_data_vel {
-  double Vel[3];
-} * P_vel;
+extern struct part_data_half {
+  double Var[3];
+} * P_pos, * P_vel;
 #endif
 
 #ifdef VARLINK
