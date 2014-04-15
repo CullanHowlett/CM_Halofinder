@@ -140,7 +140,6 @@ void Read_Data(void) {
               my_fread(&(val), sizeof(float), 1, fp);
               P_file[j].Vel[k] = val;
             }
-            if (filenumber >= 4) P_file[j].Pos[0] -= (Lxmax-Lxmin);
           }
           my_fread(&dummy, sizeof(dummy), 1, fp);
         } else {
@@ -361,6 +360,7 @@ void Read_Data(void) {
       cnparticles_recv[k]  = cnparticles_recv[k-1]+nparticles_recv[k-1];
     }
 
+    //P_sorted = (struct part_data *)malloc(nparticles_sum*sizeof(struct part_data));
 #ifdef PARTICLE_ID
     P_sorted_id = (unsigned long long *)malloc(nparticles_sum*sizeof(unsigned long long));
 #endif
@@ -580,6 +580,7 @@ void Read_Data(void) {
 
     ierr = MPI_Alltoallv(&(P_sorted_vel[0]), &(nparticles[0]), &(cnparticles[0]), MPI_BYTE, &(P_temp_vel[0]),
                          &(nparticles_recv[0]), &(cnparticles_recv[0]), MPI_BYTE, MPI_COMM_WORLD);
+
 
 #ifdef GADGET_STYLE
 #ifndef LIGHTCONE
