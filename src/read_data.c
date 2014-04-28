@@ -174,6 +174,7 @@ void Read_Data(void) {
         for (k=0; k<3; k++) {
           my_fread(&(val), sizeof(float), 1, fp);
           P_file[j].Pos[k] = val;
+        }
       }
       my_fread(&dummy, sizeof(dummy), 1, fp);
 
