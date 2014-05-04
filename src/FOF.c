@@ -16,23 +16,30 @@
 #include "vars.h"
 
 int nhalos;
-int * nparthalo, *ihalo;
+int *nparthalo, *ihalo;
 unsigned int * next;
 double linksq;
 
 void FOF(void) {
 
+  gsl_rng * rgen;
   int nx, ny, nz;
   int nphalo, nhalos;
   int ix, iy, iz, ix1, iy1, ix2, iy2, iz2;
   unsigned int i, ip, ip2, ind;
+  unsigned int ninhalo=0, nouthalo=0;
   unsigned int * head, *chain, * first;
+  unsigned int * inhalo=NULL, * outhalo=NULL;
   double lcell[3];
+  double sampbuffer=1.1;
 #ifdef VARLINK
   double distance;
 #endif 
 
   if (ThisTask == 0) printf("Creating subcells...\n");
+  
+  rgen = gsl_rng_alloc(gsl_rng_ranlxd1);
+  gsl_rng_set(rgen, Seed);
 
   // set grid of cells 
   lcell[0]=(Lxmax-Lxmin)/Px;
@@ -155,11 +162,21 @@ void FOF(void) {
   gsl_spline_free(link_spline);
   gsl_interp_accel_free(link_acc);
 #endif
-
+  
+  if (ThisTask == 0) printf("Retrieving halos...\n");
+  
+  if (SampInHalos>0)  {
+    unsigned int dummy = (unsigned int)rint(sampbuffer*nparticles_tot*SampInHalos);
+    if (dummy > nparticles_tot) dummy = nparticles_tot;
+    inhalo  = (unsigned int *)malloc(dummy*sizeof(int));
+  }
+  if (SampOutHalos>0) {
+    unsigned int dummy = (unsigned int)rint(sampbuffer*nparticles_tot*SampOutHalos);
+    if (dummy > nparticles_tot) dummy = nparticles_tot;
+    outhalo = (unsigned int *)malloc(dummy*sizeof(int));
+  }
   head = (unsigned int *)calloc(nparticles_tot,sizeof(unsigned int));
   head--;
-
-  if (ThisTask == 0) printf("Retrieving halos...\n");
 
   // first count heads
   nhalos=0;
@@ -170,15 +187,95 @@ void FOF(void) {
 
       do {
         ip=next[ip];
-        nphalo=nphalo+1;
+        nphalo++;
         if (ip == i) break;
         head[ip]=1;
       } while(1);
 
       if (nphalo < nphalomin) {
-        head[ip]=1;   
+        head[ip]=1;
+        
+        // Subsample particles not in halos
+        if(SampOutHalos>0) {
+          do {
+            ip=next[ip];
+            if (gsl_rng_uniform(rgen) < SampOutHalos) {
+              // We only want to output particles that are within the processor boundaries 
+#ifdef PERIODIC
+              if ((P[ip-1].Pos[0] < rmin[0]) || (P[ip-1].Pos[0] >= rmax[0])) break;
+              if ((P[ip-1].Pos[1] < rmin[1]) || (P[ip-1].Pos[1] >= rmax[1])) break;
+              if ((P[ip-1].Pos[2] < rmin[2]) || (P[ip-1].Pos[2] >= rmax[2])) break;
+#else
+              if (Local_nx == Nx-1) {
+                if ((P[ip-1].Pos[0] < rmin[0]) || (P[ip-1].Pos[0]  > rmax[0])) break;
+              } else {
+                if ((P[ip-1].Pos[0] < rmin[0]) || (P[ip-1].Pos[0] >= rmax[0])) break;
+              }
+              if (Local_ny == Ny-1) {
+                if ((P[ip-1].Pos[1] < rmin[1]) || (P[ip-1].Pos[1]  > rmax[1])) break;
+              } else {
+                if ((P[ip-1].Pos[1] < rmin[1]) || (P[ip-1].Pos[1] >= rmax[1])) break;
+              }
+              if (Local_nz == Nz-1) {
+                if ((P[ip-1].Pos[2] < rmin[2]) || (P[ip-1].Pos[2]  > rmax[2])) break;
+              } else {
+                if ((P[ip-1].Pos[2] < rmin[2]) || (P[ip-1].Pos[2] >= rmax[2])) break;
+              }
+#endif
+              outhalo[nouthalo]=ip;
+              nouthalo++;
+              if((nouthalo>=sampbuffer*nparticles_tot*SampOutHalos) || (nouthalo>=nparticles_tot)) {
+                printf("\nERROR: Task %d has subsampled more particles than it has memory for.\n", ThisTask);
+                printf("       This is unexpected, but can be avoided by increasing the parameter sampbuffer in FOF.c, line 27.\n\n");
+                FatalError("FOF.c", 231); 
+              }
+            }
+            if (ip == i) break;
+          } while(1);
+        }
+        
       } else {
-        nhalos=nhalos+1;
+        nhalos++;
+        
+        // Subsample particles in halos
+        if(SampInHalos>0) {
+          do {
+            ip=next[ip];
+            if (gsl_rng_uniform(rgen) < SampInHalos) {
+              // We only want to output particles that are within the processor boundaries 
+#ifdef PERIODIC
+              if ((P[ip-1].Pos[0] < rmin[0]) || (P[ip-1].Pos[0] >= rmax[0])) break;
+              if ((P[ip-1].Pos[1] < rmin[1]) || (P[ip-1].Pos[1] >= rmax[1])) break;
+              if ((P[ip-1].Pos[2] < rmin[2]) || (P[ip-1].Pos[2] >= rmax[2])) break;
+#else
+              if (Local_nx == Nx-1) {
+                if ((P[ip-1].Pos[0] < rmin[0]) || (P[ip-1].Pos[0]  > rmax[0])) break;
+              } else {
+                if ((P[ip-1].Pos[0] < rmin[0]) || (P[ip-1].Pos[0] >= rmax[0])) break;
+              }
+              if (Local_ny == Ny-1) {
+                if ((P[ip-1].Pos[1] < rmin[1]) || (P[ip-1].Pos[1]  > rmax[1])) break;
+              } else {
+                if ((P[ip-1].Pos[1] < rmin[1]) || (P[ip-1].Pos[1] >= rmax[1])) break;
+              }
+              if (Local_nz == Nz-1) {
+                if ((P[ip-1].Pos[2] < rmin[2]) || (P[ip-1].Pos[2]  > rmax[2])) break;
+              } else {
+                if ((P[ip-1].Pos[2] < rmin[2]) || (P[ip-1].Pos[2] >= rmax[2])) break;
+              }
+#endif
+              inhalo[ninhalo]=ip;
+              ninhalo++;
+              if((ninhalo>=sampbuffer*nparticles_tot*SampInHalos) || (ninhalo>=nparticles_tot)) {
+                printf("\nERROR: Task %d has subsampled more particles than it has memory for.\n", ThisTask);
+                printf("       This is unexpected, but can be avoided by increasing the parameter sampbuffer in FOF.c, line 27.\n\n");
+                FatalError("FOF.c", 268); 
+              }
+            }
+            if (ip == i) break;
+          } while(1);
+        }
+        
       }          
     } 
   }
@@ -202,12 +299,30 @@ void FOF(void) {
     printf("====================\n\n");
   }
   Output_Halos();
+  
+  // Write out the subsampled data
+  if (SampInHalos > 0) {
+    if (ThisTask == 0) {
+      printf("Outputting the particles in halos\n");
+      printf("=================================\n\n");
+    }
+    Subsample(1, ninhalo, inhalo);
+  }
+  if (SampOutHalos > 0) {
+    if (ThisTask == 0) {
+      printf("Outputting the particles outside halos\n");
+      printf("======================================\n\n");
+    }
+    Subsample(0, nouthalo, outhalo);
+  }
 
   next++;
   free(P);
   free(next);
   free(ihalo);
   free(nparthalo);
+  if (SampInHalos>0)  free(inhalo);
+  if (SampOutHalos>0) free(outhalo);
 
   return;
 }
@@ -322,6 +437,45 @@ void Checkhalo(unsigned int i) {
   return;
 }
 
+void Subsample(int in, unsigned int nsubsamp, unsigned int * subsamp) {
+  
+  FILE *fp; 
+  char buf[300];
+  int nprocgroup, groupTask, masterTask;
+  unsigned int i, j;
+  
+  nprocgroup = NTask / nwrite;
+  
+  if (NTask % nwrite) nprocgroup++;
+  
+  masterTask = (ThisTask / nprocgroup) * nprocgroup;
+  
+  for(groupTask = 0; groupTask < nprocgroup; groupTask++) {
+    if (ThisTask == (masterTask + groupTask)) {
+      if(in) {
+        sprintf(buf, "%s_inhalo.%d", OutputFileBase, ThisTask);
+      } else {
+        sprintf(buf, "%s_outhalo.%d", OutputFileBase, ThisTask);
+      }
+      if(!(fp = fopen(buf, "w"))) {
+        printf("\nError: Unable to open output file %s.\n\n", buf);
+        FatalError("FOF.c", 342);
+      }
+      for(i=0; i<nsubsamp; i++) {
+        j=subsamp[i];
+#ifdef PARTICLE_ID
+        fprintf(fp,"%12llu %12.6f %12.6f %12.6f %12.6f %12.6f %12.6f\n", P[j-1].ID, (float)(P[j-1].Pos[0]),(float)(P[j-1].Pos[1]),(float)(P[j-1].Pos[2]),(float)(P[j-1].Vel[0]),(float)(P[j-1].Vel[1]),(float)(P[j-1].Vel[2]));
+#else
+        fprintf(fp,"%12.6f %12.6f %12.6f %12.6f %12.6f %12.6f\n", (float)(P[j-1].Pos[0]),(float)(P[j-1].Pos[1]),(float)(P[j-1].Pos[2]),(float)(P[j-1].Vel[0]),(float)(P[j-1].Vel[1]),(float)(P[j-1].Vel[2]));   
+#endif
+      }
+      fclose(fp);
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+  }   
+  return;
+}
+
 void Output_Halos(void) {
 
   FILE *fp; 
@@ -336,7 +490,7 @@ void Output_Halos(void) {
 
   for(groupTask = 0; groupTask < nprocgroup; groupTask++) {
     if (ThisTask == (masterTask + groupTask)) {
-      sprintf(buf, "%s/%s.%d", OutputDir, OutputFileBase, ThisTask);
+      sprintf(buf, "%s.%d", OutputFileBase, ThisTask);
       if(!(fp = fopen(buf, "w"))) {
         printf("\nError: Unable to open output file %s.\n\n", buf);
         FatalError("FOF.c", 342);

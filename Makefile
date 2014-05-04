@@ -1,6 +1,6 @@
 # The executable name
 # ===================
-EXEC    = CM_Halofinder_test
+EXEC    = CM_Halofinder
 
 # Choose the machine you are running on. Currently versions for SCIAMA and DARWIN are implemented
 # ===============================================================================================
@@ -13,8 +13,8 @@ OPTIMIZE  = -O3 -Wall
 
 # Various C preprocessor directives that change the way CM_Halofinder is made
 # ===========================================================================
-#PERIODIC = -DPERIODIC	          # Periodic Box
-#OPTIONS += $(PERIODIC)
+PERIODIC = -DPERIODIC	           # Periodic Box
+OPTIONS += $(PERIODIC)
 
 #VARLINK = -DVARLINK               # Redshift dependent linking length
 #OPTIONS += $(VARLINK)
@@ -22,27 +22,39 @@ OPTIMIZE  = -O3 -Wall
 MEMORY_MODE = -DMEMORY_MODE       # Uses floats for particle data rather than doubles
 OPTIONS += $(MEMORY_MODE)
 
-LIGHTCONE = -DLIGHTCONE          # Read in data from a lightcone simulation rather than a snapshot
-OPTIONS += $(LIGHTCONE)          # If used with UNFORMATTED option then the file must be organised in PICOLA's LIGHTCONE output style
+#LIGHTCONE = -DLIGHTCONE           # Read in data from a PICOLA LIGHTCONE simulation rather than a snapshot
+#OPTIONS += $(LIGHTCONE)           # If data is in binary then the UNFORMATTED option must be used rather then GADGET_STYLE
 
 #PARTICLE_ID = -DPARTICLE_ID       # Reads in and remembers the unsigned long long particle ID's then outputs them if necessary
 #OPTIONS += $(PARTICLE_ID)
 
-GADGET_STYLE = -DGADGET_STYLE          # Read files with Gadget's '1' style format, with the corresponding
-OPTIONS += $(GADGET_STYLE)             # header and correct velocity units
+GADGET_STYLE = -DGADGET_STYLE     # Read files with Gadget's '1' style format, with the corresponding header
+OPTIONS += $(GADGET_STYLE)        # This option is incompatible with PICOLA LIGHTCONE simulations, in this case we must use the UNFORMATTED option instead
+
+#UNFORMATTED = -DUNFORMATTED       # Read files in PICOLA's UNFORMATTED style, which corresponds to chunks of particles with each chunk preceded by the number
+#OPTIONS += $(UNFORMATTED)         # of particle's within that chunk. Within each chunk all the data for a given particle is written contiguously.
 
 #OUTPUT_PARTICLES = -DOUTPUT_PARTICLES  # Outputs all the particles in each halo, with output file format: nhalos, then for each each halo
 #OPTIONS += $(OUTPUT_PARTICLES)         # npart then for each particle the position, velocity and ID if requested. Otherwise we only output the group
-                                       # properties of each halo
-
-READ_INFO = -DREAD_INFO          # Reads in the dark matter field using an associated info file, which contains a list of files in which each slice
-OPTIONS += $(READ_INFO)          # of the field can be found. This will be quicker and less memory intensive than the standard read routine
+                                        # properties of each halo
 
 # Run some checks on option compatability
 # =======================================
 ifdef PARTICLE_ID
-ifndef OUTPUT_PARTICLES
-   $(warning WARNING: We are not outputting the particles (OUTPUT_PARTICLES not on) so keeping track of particle IDs (with option PARTICLE_ID) is unnecessary.)
+ifdef LIGHTCONE
+   $(warning WARNING: PICOLA LIGHTCONE output does not output particle IDs)
+endif
+endif
+
+ifdef GADGET_STYLE
+ifdef LIGHTCONE
+   $(error ERROR: LIGHTCONE AND GADGET_STYLE are not compatible, for binary output with PICOLA LIGHTCONE simulations please choose the UNFORMATTED option.)
+endif
+endif
+
+ifdef UNFORMATTED
+ifndef LIGHTCONE 
+   $(error ERROR: UNFORMATTED option is currently incompatible with snapshot simulations, for binary output with snapshot simulations please choose the GADGET_STYLE option.)
 endif
 endif
 

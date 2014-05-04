@@ -22,7 +22,8 @@ void Read_Data(void) {
   // the input is spread over, or try and modify the particle data structures and pass over less information at a time.
   
   FILE * fp=NULL;
-  char buf[300];
+  char buf[500];
+  char ** filelist=NULL;
   int i, imax, k, q;
   int file_exists, filenumber=ninputfiles, nreadid;
   int *readid, * data_index, * nparticles, * nparticles_recv, * cnparticles, * cnparticles_recv;
@@ -44,7 +45,7 @@ void Read_Data(void) {
   int cont;
 #endif
 #else
-  char bufcount[300];
+  char bufcount[500];
 #endif
 
   nparticles_tot=0;
@@ -67,7 +68,40 @@ void Read_Data(void) {
       if (nreadid == nread) break;       // This is here to account for when nread is not a factor of NTask        
     }
   }
-
+  
+  // If Inputstyle!=0 we need to get the necessary processors to read in the list of input files and store them.
+  if (InputStyle) {
+    for (k=0; k<nread; k++) {
+      if (readid[k] == ThisTask) {
+        if(!(fp=fopen(InputFileBase, "rb"))) {
+          printf("\nERROR: Task %d unable to file %s.\n\n", ThisTask, InputFileBase); 
+          FatalError("read_data.c", 92);
+        }
+        ninputfiles=0;
+        while(fgets(buf,500,fp)) {
+          // Check for empty/commented lines and ignore them
+          char buf1[500], buf2[500];
+          if(sscanf(buf, "%s%s", buf1, buf2) < 1) continue;
+          if((buf1[0] == '%')) continue;
+          ninputfiles++;
+        }
+        printf("%d\n", ninputfiles);
+        rewind(fp);
+        filelist = (char **)malloc(ninputfiles*sizeof(char*));
+        for (q=0; q<ninputfiles; q++) filelist[q] = (char*)malloc(500*sizeof(char));
+        ninputfiles=0;
+        while(fgets(buf,500,fp)) {
+          // Check for empty/commented lines and ignore them
+          char buf1[500], buf2[500];
+          if(sscanf(buf, "%s%s", buf1, buf2) < 1) continue;
+          if((buf1[0] == '%')) continue;
+          strcpy(filelist[ninputfiles],buf1);
+          ninputfiles++;
+        }
+      }
+    }
+  }
+        
   imax = (int)ceil((double)ninputfiles/(double)nread);
   for(i=0; i<imax; i++) {
 
@@ -80,13 +114,19 @@ void Read_Data(void) {
     ierr = MPI_Barrier(MPI_COMM_WORLD);
 
     // Now find out which processors were chosen and give each of them a unique file to read in
+    // If InputStyle=0 we just give them a file 'InputFileBase+filenumber'. Otherwise'filenumber' is
+    // the entry in 'filelist' that contains the filename for each processor to read in.
     file_exists=0;
     for (k=0; k<nread; k++) {
       if (readid[k] == ThisTask) {
         filenumber = i*nread+k;
         if (filenumber < ninputfiles) {
           file_exists=1;
-          sprintf(buf, "%s/%s.%d", InputDir, InputFileBase, filenumber+starting_file);
+          if (InputStyle) {
+            sprintf(buf, "%s", filelist[filenumber]);
+          } else {
+            sprintf(buf, "%s.%d", InputFileBase, filenumber+starting_file);
+          }
         }
       }
     }
@@ -108,7 +148,7 @@ void Read_Data(void) {
     if(file_exists) {
       if(!(fp=fopen(buf, "rb"))) {
         printf("\nERROR: Task %d unable to file %s.\n\n", ThisTask, buf); 
-        FatalError("read_data.c", 80);
+        FatalError("read_data.c", 121);
       }
     }
     
@@ -213,7 +253,7 @@ void Read_Data(void) {
       }      
       
       npartfile = 0;
-      while(fgets(bufcount,300,fp)) npartfile++;
+      while(fgets(bufcount,500,fp)) npartfile++;
       P_file = (struct part_data *)malloc(npartfile*sizeof(struct part_data));
       rewind(fp);
       for(j=0; j<npartfile; j++) {
@@ -672,8 +712,17 @@ void Read_Data(void) {
     
   }
 
+  // If Inputstyle!=0 we need to deallocate the 'filelist'.
+  if (InputStyle) {
+    for (k=0; k<nread; k++) {
+      if (readid[k] == ThisTask) {
+        for (q=0; q<ninputfiles; q++) free(filelist[q]);
+        free(filelist);
+      }
+    }
+  }
   free(readid);
-
+      
   ierr = MPI_Barrier(MPI_COMM_WORLD);
   printf("Task %d has %d particles in total...\n", ThisTask, nparticles_tot);
   fflush(stdout);

@@ -124,7 +124,7 @@ void Read_Parameterfile(char * fname) {
   FILE *fd;
   void *addr[MAXTAGS];
   char tag[MAXTAGS][50];
-  char buf[200],buf1[200],buf2[200],buf3[200];
+  char buf[500],buf1[500],buf2[500],buf3[500];
   int i,j,nt;
   int id[MAXTAGS];
   int errorFlag = 0;
@@ -132,22 +132,6 @@ void Read_Parameterfile(char * fname) {
   // read parameter file on all processes for simplicity
 
   nt = 0;
-
-  strcpy(tag[nt], "InputDir");
-  addr[nt] = InputDir;
-  id[nt++] = STRING;
-
-  strcpy(tag[nt], "InputFileBase");
-  addr[nt] = InputFileBase;
-  id[nt++] = STRING;
-
-  strcpy(tag[nt], "OutputDir");
-  addr[nt] = OutputDir;
-  id[nt++] = STRING;
-
-  strcpy(tag[nt], "OutputFileBase");
-  addr[nt] = OutputFileBase;
-  id[nt++] = STRING;
 
   strcpy(tag[nt], "Nx");
   addr[nt] = &Nx;
@@ -172,62 +156,86 @@ void Read_Parameterfile(char * fname) {
   strcpy(tag[nt], "Pz");
   addr[nt] = &Pz;
   id[nt++] = INT;
+  
+  strcpy(tag[nt], "Lxmin");
+  addr[nt] = &Lxmin;
+  id[nt++] = FLOAT;
+  
+  strcpy(tag[nt], "Lymin");
+  addr[nt] = &Lymin;
+  id[nt++] = FLOAT;
+  
+  strcpy(tag[nt], "Lzmin");
+  addr[nt] = &Lzmin;
+  id[nt++] = FLOAT;
+  
+  strcpy(tag[nt], "Lxmax");
+  addr[nt] = &Lxmax;
+  id[nt++] = FLOAT;
+  
+  strcpy(tag[nt], "Lymax");
+  addr[nt] = &Lymax;
+  id[nt++] = FLOAT;
+  
+  strcpy(tag[nt], "Lzmax");
+  addr[nt] = &Lzmax;
+  id[nt++] = FLOAT;
+  
+  strcpy(tag[nt], "Seed");
+  addr[nt] = &Seed;
+  id[nt++] = INT;
+  
+  strcpy(tag[nt], "Buffer");
+  addr[nt] = &Buffer;
+  id[nt++] = FLOAT;
+  
+  strcpy(tag[nt], "Boundarysize");
+  addr[nt] = &boundarysize;
+  id[nt++] = FLOAT;
+  
+  strcpy(tag[nt], "Linklength");
+  addr[nt] = &linklength;
+  id[nt++] = FLOAT;
+  
+  strcpy(tag[nt], "Nphalomin");
+  addr[nt] = &nphalomin;
+  id[nt++] = FLOAT;
+  
+  strcpy(tag[nt], "SampInHalos");
+  addr[nt] = &SampInHalos;
+  id[nt++] = FLOAT;
+  
+  strcpy(tag[nt], "SampOutHalos");
+  addr[nt] = &SampOutHalos;
+  id[nt++] = FLOAT;
+  
+  strcpy(tag[nt], "InputStyle");
+  addr[nt] = &InputStyle;
+  id[nt++] = INT; 
+  
+  strcpy(tag[nt], "Ninputfiles");
+  addr[nt] = &ninputfiles;
+  id[nt++] = INT;
+  
+  strcpy(tag[nt], "Starting_file");
+  addr[nt] = &starting_file;
+  id[nt++] = INT;
 
   strcpy(tag[nt], "Nread");
   addr[nt] = &nread;
   id[nt++] = INT;
 
-  strcpy(tag[nt], "Ninputfiles");
-  addr[nt] = &ninputfiles;
-  id[nt++] = INT;
-
-  strcpy(tag[nt], "Starting_file");
-  addr[nt] = &starting_file;
-  id[nt++] = INT;
-
   strcpy(tag[nt], "Nwrite");
   addr[nt] = &nwrite;
   id[nt++] = INT;
-
-  strcpy(tag[nt], "Buffer");
-  addr[nt] = &Buffer;
-  id[nt++] = FLOAT;
-
-  strcpy(tag[nt], "Lxmin");
-  addr[nt] = &Lxmin;
-  id[nt++] = FLOAT;
-
-  strcpy(tag[nt], "Lymin");
-  addr[nt] = &Lymin;
-  id[nt++] = FLOAT;
-
-  strcpy(tag[nt], "Lzmin");
-  addr[nt] = &Lzmin;
-  id[nt++] = FLOAT;
-
-  strcpy(tag[nt], "Lxmax");
-  addr[nt] = &Lxmax;
-  id[nt++] = FLOAT;
-
-  strcpy(tag[nt], "Lymax");
-  addr[nt] = &Lymax;
-  id[nt++] = FLOAT;
-
-  strcpy(tag[nt], "Lzmax");
-  addr[nt] = &Lzmax;
-  id[nt++] = FLOAT;
-
-  strcpy(tag[nt], "Boundarysize");
-  addr[nt] = &boundarysize;
-  id[nt++] = FLOAT;
-
-  strcpy(tag[nt], "Linklength");
-  addr[nt] = &linklength;
-  id[nt++] = FLOAT;
-
-  strcpy(tag[nt], "Nphalomin");
-  addr[nt] = &nphalomin;
-  id[nt++] = FLOAT;
+  
+  strcpy(tag[nt], "InputFileBase");
+  addr[nt] = InputFileBase;
+  id[nt++] = STRING;
+  
+  strcpy(tag[nt], "OutputFileBase");
+  addr[nt] = OutputFileBase;
+  id[nt++] = STRING;
 
 #ifdef VARLINK
   strcpy(tag[nt], "Omega");
@@ -250,7 +258,7 @@ void Read_Parameterfile(char * fname) {
   if((fd = fopen(fname, "r"))) {
     while(!feof(fd)) {
       buf[0] = 0;
-      fgets(buf, 200, fd);
+      fgets(buf, 500, fd);
 
       if(sscanf(buf, "%s%s%s", buf1, buf2, buf3) < 2) continue;
       if(buf1[0] == '%') continue;

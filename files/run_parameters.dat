@@ -1,39 +1,52 @@
 % Run parameters for the parallel FoF routine
+% ===========================================
 
-InputDir  /mnt/lustre/manera/NBody/PICOLA_previous/L800_N256_R5001/
-InputFileBase     ics_PICOLA_corr_L800_N256_R5001_unformatted_lightcone
+% Simulation Geometry
+% ===================
+Nx    2                    % The number of processors in the x, y and z directions respectively
+Ny    2
+Nz    2
 
-OutputDir  /mnt/lustre/manera/NBody/PICOLA_previous/L800_N256_R5001/
-OutputFileBase     CM_HALOFINDER_ics_PICOLA_corr_L800_N256_R5001_readinfo_unformatted_lightcone
-
-Nx    4                      % The number of processors in the x, y and z directions respectively
-Ny    4
-Nz    4
-
-Px       768          % The number of particles in the simulation in the x, y and z directions
-Py       768
-Pz       768
+Px       256               % The number of particles in the simulation in the x, y and z directions
+Py       256
+Pz       256
 
 Lxmin         0.0          % The boundaries of the simulation region
 Lymin         0.0 
 Lzmin         0.0
-Lxmax         2400.0
-Lymax         2400.0
-Lzmax         2400.0
+Lxmax         800.0
+Lymax         800.0
+Lzmax         800.0
 
-Buffer          1.3        % The multiplicative buffer to account for the fact the dark matter field is inhomogeneous (1.15 should be enough)
-Boundarysize    35           % The size of the boundary region given to each processor in Mpc/h (In tests minimum was 20)
+% FOF Parameters
+% ==============
+Seed            101        % The seed for the random number generator used for subsampling
+Buffer          1.15       % The multiplicative buffer to account for the fact the dark matter field is inhomogeneous (1.15 should be enough)
+Boundarysize    35         % The size of the boundary region given to each processor in Mpc/h (In tests minimum was 20)
+Linklength      0.625      % The linking length (Mpc/h)
+Nphalomin       10         % The minimum number of particles to consitute a halo
+SampInHalos     -1         % The fractional subsampling rate for particles in halos (a negative number means we will not subsample)
+SampOutHalos    -1         % The fractional subsampling rate for particles outside of halos (a negative number means we will not subsample)
 
-Linklength      0.625       % The linking length (Mpc/h)
-Nphalomin       10           % The minimum number of particles to consitute a halo
+% Input/Output Parameters
+% =======================
+InputStyle      0          % How to work out the input files to read in.
+                           % 0 - We read in all files with filename 'InputFileBase.filenumber' with filenumber equal to numbers between 
+                           %     'Starting_file' and 'Starting_file+Ninputfiles-1'
+                           % 1 (or otherwise) - We read in a single file with filename 'InputFileBase' which contains a list of the input file names. In this
+                           %                    case 'Starting_file' and 'Ninputfiles' are unused but must still be specified
 
-Nread           8           % The number of processors reading in the data (usually set to total number of processors)
-Ninputfiles     4            % The number of initial conditions files to read in
-Starting_file   0            % The file to start from (if we are not reading in the full simulation)
+Ninputfiles     4          % The number of initial conditions files to read in (for InputStyle=0) 
+Starting_file   0          % The file to start from (for InputStyle=0)
 
-Nwrite          8           % The number of processors writing out at once (usually set to the total number of processors)
+Nread           8          % The number of processors reading in the data
+Nwrite          8          % The number of processors writing out at once
 
-% Only needed for the Varlink option (otherwise must comment out)
+InputFileBase   /mnt/lustre/manera/NBody/PICOLA_previous/L800_N256_R5001/ics_PICOLA_corr_L800_N256_R5001_unformatted_z0p000
+OutputFileBase  /mnt/lustre/manera/NBody/PICOLA_previous/L800_N256_R5001/CM_HALOFINDER_ics_PICOLA_corr_L800_N256_R5001_unformatted_z0p000_new2
+
+% Variable Linking Length Parameters (Only necessary for VARLINK option otherwise these must be commented out)
+% ===========================================================================================================
 %Omega           0.25         % The Matter density at z=0
 %Origin_x        0.0          % The position of the origin
 %Origin_y        0.0

@@ -4,6 +4,7 @@
 #include <string.h>
 
 // GSL libraries
+#include <gsl/gsl_rng.h>
 #include <gsl/gsl_min.h>
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_errno.h>
@@ -90,17 +91,19 @@ header;
 
 // Run parameters
 // ==============
-extern char InputDir[100];        // The input directory
-extern char OutputDir[100];       // The output directory
-extern char InputFileBase[100];   // The base input filename
-extern char OutputFileBase[100];  // The base output filename
+extern char InputFileBase[500];   // The base input filename
+extern char OutputFileBase[500];  // The base output filename
+extern int Seed;                  // The seed for the subsampling random number generator
 extern int nread;                 // The number of processors reading in the data at once
 extern int nwrite;                // The number of processors writing out the data at once
 extern int Px, Py, Pz;            // The number of particles in the simulation (per side)
 extern int Nx, Ny, Nz;            // The number of tasks in each direction
+extern int InputStyle;            // How to work out which files to read in
 extern int ninputfiles;           // The number of input files
 extern int starting_file;         // The first file to start from
 extern double Buffer;             // The amount of buffer memory to allocate to account for the inhomogeneity of the dark matter field
+extern double SampInHalos;        // The fractional subsampling rate for particles inside halos
+extern double SampOutHalos;       // The fractional subsmapling rate for particles outside of halos
 extern double Lxmin, Lxmax;       // The x-boundaries of the simulation
 extern double Lymin, Lymax;       // The y-boundaries of the simulation
 extern double Lzmin, Lzmax;       // The z-boundaries of the simulation
@@ -115,21 +118,18 @@ extern double Origin_x, Origin_y, Origin_z;  // The position of the origin
 // Prototypes
 // ==========
 void FOF(void);
+void Read_Data(void);
 void Set_Params(void);
 void Output_Halos(void);
 void Checkhalo(unsigned int i);
 void Read_Parameterfile(char * fname);
 void FatalError(char * filename, int linenum);
 void Befriend(unsigned int ip, unsigned int ip2);
+void Subsample(int in, unsigned int nsubsamp, unsigned int * subsamp);
 size_t my_fread(void *ptr, size_t size, size_t nmemb, FILE * stream);
 #ifdef VARLINK
 void Create_Link(void);
 double rz(double z);
 double Ez(double z, void * params);
 double minimizer(double z, void * params);
-#endif
-#ifdef READ_INFO
-void Read_Data_Info(void);
-#else
-void Read_Data(void);
 #endif

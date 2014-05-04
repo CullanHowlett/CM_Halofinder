@@ -35,17 +35,19 @@ struct io_header_1 header;
 
 // Run parameters
 // ==============
-char InputDir[100];        // The input directory
-char OutputDir[100];       // The output directory
-char InputFileBase[100];   // The base input filename
-char OutputFileBase[100];  // The base output filename
-int Nx, Ny, Nz;            // The number of tasks in each direction
-int Px, Py, Pz;            // The number of particles in the simulation (per side)
+char InputFileBase[500];   // The base input filename
+char OutputFileBase[500];  // The base output filename
+int Seed;                  // The seed for the subsampling random number generator
 int nread;                 // The number of processors reading in the data at once
+int nwrite;                // The number of processors writing out the data at once
+int Px, Py, Pz;            // The number of particles in the simulation (per side)
+int Nx, Ny, Nz;            // The number of tasks in each direction
+int InputStyle;            // How to work out which files to read in
 int ninputfiles;           // The number of input files
 int starting_file;         // The first file to start from
-int nwrite;                // The number of processors writing out the data at once
 double Buffer;             // The amount of buffer memory to allocate to account for the inhomogeneity of the dark matter field
+double SampInHalos;        // The fractional subsampling rate for particles inside halos
+double SampOutHalos;       // The fractional subsmapling rate for particles outside of halos
 double Lxmin, Lxmax;       // The x-boundaries of the simulation
 double Lymin, Lymax;       // The y-boundaries of the simulation
 double Lzmin, Lzmax;       // The z-boundaries of the simulation
