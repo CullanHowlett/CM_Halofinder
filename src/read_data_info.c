@@ -20,15 +20,17 @@ void Read_Data_Info(void) {
 #ifdef PERIODIC
   struct part_data P_wrap;
 #endif
+#ifdef LIGHTCONE
+#ifdef UNFORMATTED
+  int k, dummy;
+  unsigned int nchunk;
+#endif
+#else
 #ifdef GADGET_STYLE
   int k, dummy;
-#ifdef LIGHTCONE
-  unsigned int nchunk;
-#else
   struct part_data * P_tmp;
 #endif
 #endif
-
 
   nfiles=0;
   nparticles_tot=0;
@@ -105,12 +107,12 @@ void Read_Data_Info(void) {
         readflag[i]++;
         sprintf(buf, "%s/%s.%d", InputDir, InputFileBase, i);
 
-// Unformatted input files
-// =======================
-#ifdef GADGET_STYLE
-
-// Lightcone
+// LIGHTCONE simulations
+// =====================
 #ifdef LIGHTCONE
+
+// Binary
+#ifdef UNFORMATTED
        
         if(!(fp = fopen(buf, "rb"))) {
           printf("\nERROR: Can't open input file '%s'.\n\n", buf);
@@ -130,8 +132,43 @@ void Read_Data_Info(void) {
             for (k=0; k<3; k++) my_fread(&(P_file.Pos[k]), sizeof(float), 1, fp);
             for (k=0; k<3; k++) my_fread(&(P_file.Vel[k]), sizeof(float), 1, fp);
  
-// Snapshot
+// ASCII
 #else
+
+        if(!(fp = fopen(buf, "r"))) {
+          printf("\nERROR: Can't open input file '%s'.\n\n", buf);
+          FatalError("read_data_info.c", 97);
+        }
+        for(j=0; j<npartfile[i]; j++) {
+#ifdef MEMORY_MODE
+#ifdef PARTICLE_ID
+          if((fscanf(fp, "%llu %f %f %f %f %f %f\n", &(P_file.ID), &(P_file.Pos[0]), &(P_file.Pos[1]), &(P_file.Pos[2]), 
+                                                     &(P_file.Vel[0]), &(P_file.Vel[1]), &(P_file.Vel[2])) != 7)) {
+#else
+          if((fscanf(fp, "%f %f %f %f %f %f\n", &(P_file.Pos[0]), &(P_file.Pos[1]), &(P_file.Pos[2]), 
+                                                &(P_file.Vel[0]), &(P_file.Vel[1]), &(P_file.Vel[2])) != 6)) {
+#endif
+#else
+#ifdef PARTICLE_ID
+          if((fscanf(fp, "%llu %lf %lf %lf %lf %lf %lf\n", &(P_file.ID), &(P_file.Pos[0]), &(P_file.Pos[1]), &(P_file.Pos[2]), 
+                                                           &(P_file.Vel[0]), &(P_file.Vel[1]), &(P_file.Vel[2])) != 7)) {
+#else
+          if((fscanf(fp, "%lf %lf %lf %lf %lf %lf\n", &(P_file.Pos[0]), &(P_file.Pos[1]), &(P_file.Pos[2]), 
+                                                      &(P_file.Vel[0]), &(P_file.Vel[1]), &(P_file.Vel[2])) != 6)) {
+#endif
+#endif
+            printf("Task %d has error reading file %s\n", ThisTask, buf); 
+            FatalError("read_data_info.c", 326);
+          }
+
+#endif
+
+// Snapshot simulations
+// ====================
+#else
+
+// Binary
+#ifdef GADGET_STYLE
 
         P_tmp = (struct part_data *)malloc(npartfile[i]*sizeof(struct part_data));
 
@@ -167,10 +204,7 @@ void Read_Data_Info(void) {
         for (j=0; j<npartfile[i]; j++) {
           P_file = P_tmp[j];
 
-#endif
-
-// Formatted input files (lightcone and snapshot are the same style)
-// =================================================================
+// ASCII
 #else
 
         if(!(fp = fopen(buf, "r"))) {
@@ -199,6 +233,7 @@ void Read_Data_Info(void) {
             FatalError("read_data_info.c", 326);
           }
 
+#endif
 #endif
 
           if((P_file.Pos[0] < Lxmin) || (P_file.Pos[0] > Lxmax) || (P_file.Pos[1] < Lymin) || (P_file.Pos[1] > Lymax) || (P_file.Pos[2] < Lzmin) || (P_file.Pos[2] > Lzmax)) {
@@ -578,20 +613,20 @@ void Read_Data_Info(void) {
             }
 #endif
 
-#ifdef GADGET_STYLE
-
 #ifdef LIGHTCONE
+#ifdef UNFORMATTED
           }
           npart += nchunk;
           my_fread(&dummy, sizeof(dummy), 1, fp);
+#endif
         }
 #else
         }
+#ifdef GADGET_STYLE
         free(P_tmp);
 #endif
-#else
-        }
 #endif
+
         fclose(fp);
       }
       free(npartfile);

@@ -45,14 +45,14 @@ void Set_Params(void) {
   rmax[2]=rmin[2]+((Lzmax-Lzmin)/(double)Nz);
   rmin_buff[2]=rmin[2]-boundarysize;
   rmax_buff[2]=rmax[2]+boundarysize;
-#ifndef PERIODIC
-  if (Local_nx == 0) rmin_buff[0]=rmin[0];
-  if (Local_nx == Nx-1) rmax_buff[0]=rmax[0];
-  if (Local_ny == 0) rmin_buff[1]=rmin[1];
-  if (Local_ny == Ny-1) rmax_buff[1]=rmax[1];
-  if (Local_nz == 0) rmin_buff[2]=rmin[2];
-  if (Local_nz == Nz-1) rmax_buff[2]=rmax[2];
-#endif
+//#ifndef PERIODIC
+//  if (Local_nx == 0) rmin_buff[0]=rmin[0];
+//  if (Local_nx == Nx-1) rmax_buff[0]=rmax[0];
+//  if (Local_ny == 0) rmin_buff[1]=rmin[1];
+//  if (Local_ny == Ny-1) rmax_buff[1]=rmax[1];
+//  if (Local_nz == 0) rmin_buff[2]=rmin[2];
+//  if (Local_nz == Nz-1) rmax_buff[2]=rmax[2];
+//#endif
 
 #ifdef VARLINK
   // This finds the maximum and minimum distances from the origin for each processor. To make it general

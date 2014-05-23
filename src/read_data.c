@@ -30,30 +30,36 @@ void Read_Data(void) {
   int processor_number, neighbour_x, neighbour_y, neighbour_z, processor_comp[3], subscript[3];
   unsigned int j, m, n, npartfile=0, Nout=0, Nout_glob=0; 
   unsigned int nparticles_sum, nparticles_recv_sum;
+  double xmin=Lxmin, ymin=Lymin, zmin=Lzmin;
+  double xmax=Lxmax, ymax=Lymax, zmax=Lzmax;
   struct part_data * P_file=NULL;
 #ifdef PARTICLE_ID
   unsigned long long * P_sorted_id, * P_temp_id;
 #endif
   struct part_data_half * P_sorted_pos, * P_sorted_vel, * P_temp_pos, * P_temp_vel;
+#ifdef LIGHTCONE
+#ifdef UNFORMATTED
+  int cont, dummy;
+  float val;
+#ifdef PARTICLE_ID
+  unsigned long long ival;
+#endif
+#else
+  char bufcount[500];
+#endif
+#else
 #ifdef GADGET_STYLE
   int dummy;
   float val;
 #ifdef PARTICLE_ID
   unsigned long long ival;
 #endif
-#ifdef LIGHTCONE
-  int cont;
-#endif
 #else
   char bufcount[500];
 #endif
+#endif
 
   nparticles_tot=0;
-
-  if (ThisTask == 0) {
-    printf("%d tasks reading in %d files...\n", nread, ninputfiles);
-    fflush(stdout);
-  }
 
   // Only a small subset of the processors can read in the data. In order to balance the load
   // as much as possible, without knowing the machine configuration, we will space out the
@@ -71,13 +77,13 @@ void Read_Data(void) {
   
   // If Inputstyle!=0 we need to get the necessary processors to read in the list of input files and store them.
   if (InputStyle) {
+    ninputfiles=0;
     for (k=0; k<nread; k++) {
       if (readid[k] == ThisTask) {
         if(!(fp=fopen(InputFileBase, "rb"))) {
           printf("\nERROR: Task %d unable to file %s.\n\n", ThisTask, InputFileBase); 
           FatalError("read_data.c", 92);
         }
-        ninputfiles=0;
         while(fgets(buf,500,fp)) {
           // Check for empty/commented lines and ignore them
           char buf1[500], buf2[500];
@@ -85,7 +91,6 @@ void Read_Data(void) {
           if((buf1[0] == '%')) continue;
           ninputfiles++;
         }
-        printf("%d\n", ninputfiles);
         rewind(fp);
         filelist = (char **)malloc(ninputfiles*sizeof(char*));
         for (q=0; q<ninputfiles; q++) filelist[q] = (char*)malloc(500*sizeof(char));
@@ -100,13 +105,19 @@ void Read_Data(void) {
         }
       }
     }
+    ierr = MPI_Bcast(&ninputfiles, 1, MPI_INT, readid[0], MPI_COMM_WORLD);
+  }
+
+  if (ThisTask == 0) {
+    printf("%d tasks reading in %d files...\n", nread, ninputfiles);
+    fflush(stdout);
   }
         
   imax = (int)ceil((double)ninputfiles/(double)nread);
   for(i=0; i<imax; i++) {
 
     if (ThisTask == 0) {
-      printf("Performing loop over files: %d of %d\n", i+1, imax);
+      printf("Task %d performing loop over files: %d of %d\n", ThisTask, i+1, imax);
       printf("------------------------------------\n");
       fflush(stdout);
     }
@@ -138,12 +149,12 @@ void Read_Data(void) {
     // to any other tasks. This is removed later.
     for(k=0; k<NTask; k++) nparticles[k] = nparticles_recv[k] = 1;
 
-// Unformatted input files
-// =======================
-#ifdef GADGET_STYLE
-
-// Lightcone
+// Lightcone simulations
+// =====================
 #ifdef LIGHTCONE
+
+// Binary
+#ifdef UNFORMATTED
 
     if(file_exists) {
       if(!(fp=fopen(buf, "rb"))) {
@@ -193,8 +204,50 @@ void Read_Data(void) {
 
       if (file_exists) {
 
-//Snapshot
+// ASCII
+#else 
+
+    if(file_exists) {
+      if(!(fp=fopen(buf, "r"))) {
+        printf("\nERROR: Task %d unable to find file %s.\n\n", ThisTask, buf); 
+        FatalError("read_data.c", 165);
+      }      
+      
+      npartfile = 0;
+      while(fgets(bufcount,500,fp)) npartfile++;
+      P_file = (struct part_data *)malloc(npartfile*sizeof(struct part_data));
+      rewind(fp);
+      for(j=0; j<npartfile; j++) {
+#ifdef MEMORY_MODE
+#ifdef PARTICLE_ID
+        if((fscanf(fp, "%llu %f %f %f %f %f %f\n", &(P_file[j].ID), &(P_file[j].Pos[0]), &(P_file[j].Pos[1]), &(P_file[j].Pos[2]), 
+                                                   &(P_file[j].Vel[0]), &(P_file[j].Vel[1]), &(P_file[j].Vel[2])) != 7)) {
 #else
+        if((fscanf(fp, "%f %f %f %f %f %f\n", &(P_file[j].Pos[0]), &(P_file[j].Pos[1]), &(P_file[j].Pos[2]), 
+                                              &(P_file[j].Vel[0]), &(P_file[j].Vel[1]), &(P_file[j].Vel[2])) != 6)) {
+#endif
+#else
+#ifdef PARTICLE_ID
+        if((fscanf(fp, "%llu %lf %lf %lf %lf %lf %lf\n", &(P_file[j].ID), &(P_file[j].Pos[0]), &(P_file[j].Pos[1]), &(P_file[j].Pos[2]), 
+                                                         &(P_file[j].Vel[0]), &(P_file[j].Vel[1]), &(P_file[j].Vel[2])) != 7)) {
+#else
+        if((fscanf(fp, "%lf %lf %lf %lf %lf %lf\n", &(P_file[j].Pos[0]), &(P_file[j].Pos[1]), &(P_file[j].Pos[2]), 
+                                                    &(P_file[j].Vel[0]), &(P_file[j].Vel[1]), &(P_file[j].Vel[2])) != 6)) {
+#endif
+#endif
+          printf("\nERROR: Task %d has incorrect line format in file %s.\n\n", ThisTask, buf); 
+          ierr = MPI_Abort(MPI_COMM_WORLD, 2);
+        }
+      }
+      fclose(fp);
+#endif
+
+// Snapshot
+// ========
+#else
+
+// Binary
+#ifdef GADGET_STYLE
 
     if(file_exists) {
       if(!(fp=fopen(buf, "rb"))) {
@@ -240,10 +293,7 @@ void Read_Data(void) {
 
       fclose(fp);
 
-#endif
-
-// Formatted input files (lightcone and snapshot are the same style)
-// =================================================================
+// ASCII
 #else
 
     if(file_exists) {
@@ -280,20 +330,35 @@ void Read_Data(void) {
       }
       fclose(fp);
 #endif
+#endif
 
       printf("Task %d finished reading %d particles from file %s...\n", ThisTask, npartfile, buf);
       fflush(stdout);
 
+      // This is how we identify particles as outside the simulation. For non-periodic boxes we still keep
+      // particles around the simulation edge, if they are supplied, otherwise the halos will be incorrect
+      xmin = Lxmin; ymin = Lymin; zmin = Lzmin;
+      xmax = Lxmax; ymax = Lymax; zmax = Lzmax;
+#ifndef PERIODIC
+      xmin -= boundarysize; ymin -= boundarysize; zmin -= boundarysize;
+      xmax += boundarysize; ymax += boundarysize; zmax += boundarysize;
+#endif
+
       // For each particle we calculate which processor it should go to and count the number of particles
       // that are being sent to each processor
       for(j=0; j<npartfile; j++) {
-        if((P_file[j].Pos[0] < Lxmin) || (P_file[j].Pos[0] > Lxmax) || (P_file[j].Pos[1] < Lymin) || (P_file[j].Pos[1] > Lymax) || (P_file[j].Pos[2] < Lzmin) || (P_file[j].Pos[2] > Lzmax)) {
+        if((P_file[j].Pos[0] < xmin) || (P_file[j].Pos[0] > xmax) || (P_file[j].Pos[1] < ymin) || (P_file[j].Pos[1] > ymax) || (P_file[j].Pos[2] < zmin) || (P_file[j].Pos[2] > zmax)) {
           Nout++;
           continue;
         } 
         processor_comp[0]=(int)floor(Nx*((P_file[j].Pos[0]-Lxmin)/(Lxmax-Lxmin)));
         processor_comp[1]=(int)floor(Ny*((P_file[j].Pos[1]-Lymin)/(Lymax-Lymin)));
         processor_comp[2]=(int)floor(Nz*((P_file[j].Pos[2]-Lzmin)/(Lzmax-Lzmin)));
+#ifndef PERIODIC
+        if (processor_comp[0] < 0) processor_comp[0]++;
+        if (processor_comp[1] < 0) processor_comp[1]++;
+        if (processor_comp[2] < 0) processor_comp[2]++;
+#endif     
         if (processor_comp[0] >= Nx) processor_comp[0]--;
         if (processor_comp[1] >= Ny) processor_comp[1]--;
         if (processor_comp[2] >= Nz) processor_comp[2]--;
@@ -408,13 +473,13 @@ void Read_Data(void) {
     P_sorted_pos = (struct part_data_half *)malloc(nparticles_sum*sizeof(struct part_data_half));
     P_sorted_vel = (struct part_data_half *)malloc(nparticles_sum*sizeof(struct part_data_half));
 
-    if (file_exists) {
-      printf("Task %d sending %u particles...\n", ThisTask, nparticles_sum-NTask);
-      fflush(stdout);
-    }
-    MPI_Barrier(MPI_COMM_WORLD);
-    printf("Task %d receiving %u particles...\n", ThisTask, nparticles_recv_sum-NTask);
-    fflush(stdout);
+    //if (file_exists) {
+      //printf("Task %d sending %u particles...\n", ThisTask, nparticles_sum-NTask);
+      //fflush(stdout);
+    //}
+    //MPI_Barrier(MPI_COMM_WORLD);
+    //printf("Task %d receiving %u particles...\n", ThisTask, nparticles_recv_sum-NTask);
+    //fflush(stdout);
           
     if (nparticles_tot+nparticles_recv_sum-NTask >= maxparticles) {
       printf("\nERROR: Task %d receiving more particles than allocated for.\n", ThisTask);
@@ -430,10 +495,15 @@ void Read_Data(void) {
       // sent to the particular processor
       data_index = (int *)calloc(NTask,sizeof(int));
       for (j=0; j<npartfile; j++) {
-        if((P_file[j].Pos[0] < Lxmin) || (P_file[j].Pos[0] > Lxmax) || (P_file[j].Pos[1] < Lymin) || (P_file[j].Pos[1] > Lymax) || (P_file[j].Pos[2] < Lzmin) || (P_file[j].Pos[2] > Lzmax)) continue;
+        if((P_file[j].Pos[0] < xmin) || (P_file[j].Pos[0] > xmax) || (P_file[j].Pos[1] < ymin) || (P_file[j].Pos[1] > ymax) || (P_file[j].Pos[2] < zmin) || (P_file[j].Pos[2] > zmax)) continue;
         processor_comp[0]=(int)floor(Nx*((P_file[j].Pos[0]-Lxmin)/(Lxmax-Lxmin)));
         processor_comp[1]=(int)floor(Ny*((P_file[j].Pos[1]-Lymin)/(Lymax-Lymin)));
         processor_comp[2]=(int)floor(Nz*((P_file[j].Pos[2]-Lzmin)/(Lzmax-Lzmin)));
+#ifndef PERIODIC
+        if (processor_comp[0] < 0) processor_comp[0]++;
+        if (processor_comp[1] < 0) processor_comp[1]++;
+        if (processor_comp[2] < 0) processor_comp[2]++;
+#endif 
         if (processor_comp[0] >= Nx) processor_comp[0]--;
         if (processor_comp[1] >= Ny) processor_comp[1]--;
         if (processor_comp[2] >= Nz) processor_comp[2]--;
@@ -609,7 +679,7 @@ void Read_Data(void) {
 
 #endif
 
-   for (k=0; k<NTask; k++) {
+    for (k=0; k<NTask; k++) {
       nparticles[k]       *= sizeof(struct part_data_half);
       nparticles_recv[k]  *= sizeof(struct part_data_half);
       cnparticles[k]      *= sizeof(struct part_data_half);
@@ -623,8 +693,8 @@ void Read_Data(void) {
                          &(nparticles_recv[0]), &(cnparticles_recv[0]), MPI_BYTE, MPI_COMM_WORLD);
 
 
-#ifdef GADGET_STYLE
-#ifndef LIGHTCONE
+#ifdef LIGHTCONE
+#ifndef UNFORMATTED
     free(nparticles);
 #endif
 #else
@@ -682,8 +752,8 @@ void Read_Data(void) {
       nparticles_tot += (nparticles_recv[k]-1);
     }
 
-#ifdef GADGET_STYLE
-#ifndef LIGHTCONE
+#ifdef LIGHTCONE
+#ifndef UNFORMATTED
     free(nparticles_recv);
 #endif
 #else
@@ -702,8 +772,8 @@ void Read_Data(void) {
       fflush(stdout);
     }
 
-#ifdef GADGET_STYLE
 #ifdef LIGHTCONE
+#ifdef UNFORMATTED
   }
   free(nparticles);
   free(nparticles_recv);

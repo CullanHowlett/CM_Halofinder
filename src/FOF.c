@@ -31,7 +31,7 @@ void FOF(void) {
   unsigned int * head, *chain, * first;
   unsigned int * inhalo=NULL, * outhalo=NULL;
   double lcell[3];
-  double sampbuffer=1.1;
+  double sampbuffer=1.5;
 #ifdef VARLINK
   double distance;
 #endif 
@@ -41,10 +41,16 @@ void FOF(void) {
   rgen = gsl_rng_alloc(gsl_rng_ranlxd1);
   gsl_rng_set(rgen, Seed);
 
-  // set grid of cells 
+  // set grid of cells
+#ifdef PERIODIC 
   lcell[0]=(Lxmax-Lxmin)/Px;
   lcell[1]=(Lymax-Lymin)/Py;
   lcell[2]=(Lzmax-Lzmin)/Pz;
+#else
+  lcell[0]=(Lxmax-Lxmin+2.0*boundarysize)/Px;
+  lcell[1]=(Lymax-Lymin+2.0*boundarysize)/Py;
+  lcell[2]=(Lzmax-Lzmin+2.0*boundarysize)/Pz;
+#endif
 
 #ifdef VARLINK
   // Creates the linking length lookup table
@@ -163,7 +169,6 @@ void FOF(void) {
   gsl_interp_accel_free(link_acc);
 #endif
   
-  if (ThisTask == 0) printf("Retrieving halos...\n");
   
   if (SampInHalos>0)  {
     unsigned int dummy = (unsigned int)rint(sampbuffer*nparticles_tot*SampInHalos);
@@ -177,6 +182,8 @@ void FOF(void) {
   }
   head = (unsigned int *)calloc(nparticles_tot,sizeof(unsigned int));
   head--;
+
+  if (ThisTask == 0) printf("Retrieving halos...\n");
 
   // first count heads
   nhalos=0;
@@ -385,7 +392,6 @@ void Checkhalo(unsigned int i) {
   zh /= (double)nphalo;
 
   // We only want to output halos that have a centre of mass within the processor boundaries 
-#ifdef PERIODIC
   if ((xh < rmin[0]) || (xh >= rmax[0])) return;
   if ((yh < rmin[1]) || (yh >= rmax[1])) return;
   if ((zh < rmin[2]) || (zh >= rmax[2])) return;
@@ -410,24 +416,6 @@ void Checkhalo(unsigned int i) {
     j=next[j];
     if (j == i) break;
   } while(1);
-
-#else
-  if (Local_nx == Nx-1) {
-    if ((xh < rmin[0]) || (xh  > rmax[0])) return;
-  } else {
-    if ((xh < rmin[0]) || (xh >= rmax[0])) return;
-  }
-  if (Local_ny == Ny-1) {
-    if ((yh < rmin[1]) || (yh  > rmax[1])) return;
-  } else {
-    if ((yh < rmin[1]) || (yh >= rmax[1])) return;
-  }
-  if (Local_nz == Nz-1) {
-    if ((zh < rmin[2]) || (zh  > rmax[2])) return;
-  } else {
-    if ((zh < rmin[2]) || (zh >= rmax[2])) return;
-  }
-#endif
 
   ihalo[nhalos]     = i;
   nparthalo[nhalos] = nphalo;
