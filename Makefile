@@ -13,8 +13,8 @@ OPTIMIZE  = -O3 -Wall
 
 # Various C preprocessor directives that change the way CM_Halofinder is made
 # ===========================================================================
-PERIODIC = -DPERIODIC	           # Periodic Box
-OPTIONS += $(PERIODIC)
+#PERIODIC = -DPERIODIC	           # Periodic Box
+#-OPTIONS += $(PERIODIC)
 
 #VARLINK = -DVARLINK               # Redshift dependent linking length
 #OPTIONS += $(VARLINK)
@@ -22,21 +22,26 @@ OPTIONS += $(PERIODIC)
 MEMORY_MODE = -DMEMORY_MODE       # Uses floats for particle data rather than doubles
 OPTIONS += $(MEMORY_MODE)
 
-#LIGHTCONE = -DLIGHTCONE           # Read in data from a PICOLA LIGHTCONE simulation rather than a snapshot
-#OPTIONS += $(LIGHTCONE)           # If data is in binary then the UNFORMATTED option must be used rather then GADGET_STYLE
+LIGHTCONE = -DLIGHTCONE           # Read in data from a PICOLA LIGHTCONE simulation rather than a snapshot
+OPTIONS += $(LIGHTCONE)           # If data is in binary then the UNFORMATTED option must be used rather then GADGET_STYLE
 
 #PARTICLE_ID = -DPARTICLE_ID       # Reads in and remembers the unsigned long long particle ID's then outputs them if necessary
 #OPTIONS += $(PARTICLE_ID)
 
-GADGET_STYLE = -DGADGET_STYLE     # Read files with Gadget's '1' style format, with the corresponding header
-OPTIONS += $(GADGET_STYLE)        # This option is incompatible with PICOLA LIGHTCONE simulations, in this case we must use the UNFORMATTED option instead
+#GADGET_STYLE = -DGADGET_STYLE     # Read files with Gadget's '1' style format, with the corresponding header
+#OPTIONS += $(GADGET_STYLE)        # This option is incompatible with PICOLA LIGHTCONE simulations, in this case we must use the UNFORMATTED option instead
 
-#UNFORMATTED = -DUNFORMATTED       # Read files in PICOLA's UNFORMATTED style, which corresponds to chunks of particles with each chunk preceded by the number
-#OPTIONS += $(UNFORMATTED)         # of particle's within that chunk. Within each chunk all the data for a given particle is written contiguously.
+UNFORMATTED = -DUNFORMATTED       # Read files in PICOLA's UNFORMATTED style. A PICOLA info-file containing the number of 
+OPTIONS += $(UNFORMATTED)         # particles in each file must be specified. Within each chunk all the data for a given particle is written contiguously.
 
-#OUTPUT_PARTICLES = -DOUTPUT_PARTICLES  # Outputs all the particles in each halo, with output file format: nhalos, then for each each halo
-#OPTIONS += $(OUTPUT_PARTICLES)         # npart then for each particle the position, velocity and ID if requested. Otherwise we only output the group
-                                        # properties of each halo
+#OUTPUT_PARTICLES = -DOUTPUT_PARTICLES  # Outputs all the particles in each halo, along with the group properties of the halo.
+#OPTIONS += $(OUTPUT_PARTICLES)         # Output format is ID (if requested), Position, Velocity
+
+INERTIA = -DINERTIA		# Calculate the unique elements of the moment of inertia tensor for each halo.
+OPTIONS += $(INERTIA)		# Output is Ixx, Iyy, Izz, Ixy, Ixz, Iyz
+
+DISPERSION = -DDISPERSION	# Calculate the unique elements of the velocity dispersion tensor for each halo.
+OPTIONS += $(DISPERSION)	# Output is sigma_xx, sigma_yy, sigma_zz, sigma_xy, sigma_xz, sigma_yz
 
 # Run some checks on option compatability
 # =======================================

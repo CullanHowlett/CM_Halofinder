@@ -452,9 +452,9 @@ void Subsample(int in, unsigned int nsubsamp, unsigned int * subsamp) {
       for(i=0; i<nsubsamp; i++) {
         j=subsamp[i];
 #ifdef PARTICLE_ID
-        fprintf(fp,"%12llu %12.6f %12.6f %12.6f %12.6f %12.6f %12.6f\n", P[j-1].ID, (float)(P[j-1].Pos[0]),(float)(P[j-1].Pos[1]),(float)(P[j-1].Pos[2]),(float)(P[j-1].Vel[0]),(float)(P[j-1].Vel[1]),(float)(P[j-1].Vel[2]));
+        fprintf(fp,"%15llu %15.6f %15.6f %15.6f %15.6f %15.6f %15.6f\n", P[j-1].ID, (float)(P[j-1].Pos[0]),(float)(P[j-1].Pos[1]),(float)(P[j-1].Pos[2]),(float)(P[j-1].Vel[0]),(float)(P[j-1].Vel[1]),(float)(P[j-1].Vel[2]));
 #else
-        fprintf(fp,"%12.6f %12.6f %12.6f %12.6f %12.6f %12.6f\n", (float)(P[j-1].Pos[0]),(float)(P[j-1].Pos[1]),(float)(P[j-1].Pos[2]),(float)(P[j-1].Vel[0]),(float)(P[j-1].Vel[1]),(float)(P[j-1].Vel[2]));   
+        fprintf(fp,"%15.6f %15.6f %15.6f %15.6f %15.6f %15.6f\n", (float)(P[j-1].Pos[0]),(float)(P[j-1].Pos[1]),(float)(P[j-1].Pos[2]),(float)(P[j-1].Vel[0]),(float)(P[j-1].Vel[1]),(float)(P[j-1].Vel[2]));   
 #endif
       }
       fclose(fp);
@@ -484,56 +484,89 @@ void Output_Halos(void) {
         FatalError("FOF.c", 342);
       }
 #ifdef OUTPUT_PARTICLES
-      fprintf(fp, "%12d\n", nhalos);
+      fprintf(fp, "%15d\n", nhalos);
+#endif
       for(i=0; i<nhalos; i++) {
-        j = ihalo[i];
+	double invnparthalo = 1.0/(double)nparthalo[i];
         double xh=0, yh=0, zh=0;
         double vxh=0, vyh=0, vzh=0;
+#ifdef INERTIA
+        double xh2=0, yh2=0, zh2=0;
+	double xhyh=0, xhzh=0, yhzh=0;
+#endif
+#ifdef DISPERSION
+        double vxh2=0, vyh2=0, vzh2=0;
+	double vxhvyh=0, vxhvzh=0, vyhvzh=0;
+#endif
+        j = ihalo[i];
         do {
-          xh += P[j-1].Pos[0];
-          yh += P[j-1].Pos[1];
-          zh += P[j-1].Pos[2];
-          vxh += P[j-1].Vel[0];
-          vyh += P[j-1].Vel[1];
-          vzh += P[j-1].Vel[2];
+          xh  += (double)P[j-1].Pos[0];
+          yh  += (double)P[j-1].Pos[1];
+          zh  += (double)P[j-1].Pos[2];
+          vxh += (double)P[j-1].Vel[0];
+          vyh += (double)P[j-1].Vel[1];
+          vzh += (double)P[j-1].Vel[2];
+#ifdef INERTIA
+          xh2  += (double)P[j-1].Pos[0]*(double)P[j-1].Pos[0];
+          yh2  += (double)P[j-1].Pos[1]*(double)P[j-1].Pos[1];
+          zh2  += (double)P[j-1].Pos[2]*(double)P[j-1].Pos[2];
+	  xhyh += (double)P[j-1].Pos[0]*(double)P[j-1].Pos[1];
+	  xhzh += (double)P[j-1].Pos[0]*(double)P[j-1].Pos[2];
+	  yhzh += (double)P[j-1].Pos[1]*(double)P[j-1].Pos[2];
+#endif
+#ifdef DISPERSION
+          vxh2   += (double)P[j-1].Vel[0]*(double)P[j-1].Vel[0];
+          vyh2   += (double)P[j-1].Vel[1]*(double)P[j-1].Vel[1];
+          vzh2   += (double)P[j-1].Vel[2]*(double)P[j-1].Vel[2];
+          vxhvyh += (double)P[j-1].Vel[0]*(double)P[j-1].Vel[1];
+          vxhvzh += (double)P[j-1].Vel[0]*(double)P[j-1].Vel[2];
+          vyhvzh += (double)P[j-1].Vel[1]*(double)P[j-1].Vel[2];
+#endif
           j=next[j];
           if (j == ihalo[i]) break;
         } while(1);
-        fprintf(fp,"%12d %12.6f %12.6f %12.6f %12.6f %12.6f %12.6f\n", nparthalo[i], xh/nparthalo[i], yh/nparthalo[i], zh/nparthalo[i], vxh/nparthalo[i], vyh/nparthalo[i], vzh/nparthalo[i]);   
+	xh *= invnparthalo;
+	yh *= invnparthalo;
+	zh *= invnparthalo;
+	vxh *= invnparthalo;
+	vyh *= invnparthalo;
+	vzh *= invnparthalo;
+        fprintf(fp,"%12d %12.6lf %12.6lf %12.6lf %12.6lf %12.6lf %12.6lf ", nparthalo[i], xh, yh, zh, vxh, vyh, vzh);
+#ifdef INERTIA
+	double Ixx = yh2+zh2-nparthalo[i]*(yh*yh+zh*zh);
+ 	double Iyy = xh2+zh2-nparthalo[i]*(xh*xh+zh*zh);
+	double Izz = xh2+yh2-nparthalo[i]*(xh*xh+yh*yh);
+	double Ixy = nparthalo[i]*xh*yh-xhyh;	
+	double Ixz = nparthalo[i]*xh*zh-xhzh;
+	double Iyz = nparthalo[i]*yh*zh-yhzh;
+        fprintf(fp,"%15.6lf %15.6lf %15.6lf %15.6lf %15.6lf %15.6lf ", Ixx, Iyy, Izz, Ixy, Ixz, Iyz);
+#endif
+#ifdef DISPERSION
+	double Sigmaxx = vxh2*invnparthalo-vxh*vxh;
+	double Sigmayy = vyh2*invnparthalo-vyh*vyh;
+	double Sigmazz = vzh2*invnparthalo-vzh*vzh;
+	double Sigmaxy = vxhvyh*invnparthalo-vxh*vyh;
+	double Sigmaxz = vxhvzh*invnparthalo-vxh*vzh;
+	double Sigmayz = vyhvzh*invnparthalo-vyh*vzh;
+        fprintf(fp,"%15.6lf %15.6lf %15.6lf %15.6lf %15.6lf %15.6lf ", Sigmaxx, Sigmayy, Sigmazz, Sigmaxy, Sigmaxz, Sigmayz);
+#endif
+	fprintf(fp, "\n");
+#ifdef OUTPUT_PARTICLES
         j = ihalo[i];
 #ifdef PARTICLE_ID
-        fprintf(fp,"%12llu %12.6f %12.6f %12.6f %12.6f %12.6f %12.6f\n", P[j-1].ID, (float)(P[j-1].Pos[0]),(float)(P[j-1].Pos[1]),(float)(P[j-1].Pos[2]),(float)(P[j-1].Vel[0]),(float)(P[j-1].Vel[1]),(float)(P[j-1].Vel[2]));
-#else
-        fprintf(fp,"%12.6f %12.6f %12.6f %12.6f %12.6f %12.6f\n", (float)(P[j-1].Pos[0]),(float)(P[j-1].Pos[1]),(float)(P[j-1].Pos[2]),(float)(P[j-1].Vel[0]),(float)(P[j-1].Vel[1]),(float)(P[j-1].Vel[2]));
+        fprintf(fp,"%15llu ", P[j-1].ID);
 #endif
+        fprintf(fp,"%15.6f %15.6f %15.6f %15.6f %15.6f %15.6f\n", (float)(P[j-1].Pos[0]),(float)(P[j-1].Pos[1]),(float)(P[j-1].Pos[2]),(float)(P[j-1].Vel[0]),(float)(P[j-1].Vel[1]),(float)(P[j-1].Vel[2]));
         do {
           j=next[j];
           if (j == ihalo[i]) break;
 #ifdef PARTICLE_ID
-          fprintf(fp,"%12llu %12.6f %12.6f %12.6f %12.6f %12.6f %12.6f\n", P[j-1].ID, (float)(P[j-1].Pos[0]),(float)(P[j-1].Pos[1]),(float)(P[j-1].Pos[2]),(float)(P[j-1].Vel[0]),(float)(P[j-1].Vel[1]),(float)(P[j-1].Vel[2]));
-#else
-          fprintf(fp,"%12.6f %12.6f %12.6f %12.6f %12.6f %12.6f\n", (float)(P[j-1].Pos[0]),(float)(P[j-1].Pos[1]),(float)(P[j-1].Pos[2]),(float)(P[j-1].Vel[0]),(float)(P[j-1].Vel[1]),(float)(P[j-1].Vel[2]));
+        fprintf(fp,"%15llu ", P[j-1].ID);
 #endif
+        fprintf(fp,"%15.6f %15.6f %15.6f %15.6f %15.6f %15.6f\n", (float)(P[j-1].Pos[0]),(float)(P[j-1].Pos[1]),(float)(P[j-1].Pos[2]),(float)(P[j-1].Vel[0]),(float)(P[j-1].Vel[1]),(float)(P[j-1].Vel[2]));
         } while(1);
-      }
-#else
-      for(i=0; i<nhalos; i++) {
-        j = ihalo[i];
-        double xh=0, yh=0, zh=0;
-        double vxh=0, vyh=0, vzh=0;
-        do {
-          xh += P[j-1].Pos[0];
-          yh += P[j-1].Pos[1];
-          zh += P[j-1].Pos[2];
-          vxh += P[j-1].Vel[0];
-          vyh += P[j-1].Vel[1];
-          vzh += P[j-1].Vel[2];
-          j=next[j];
-          if (j == ihalo[i]) break;
-        } while(1);
-        fprintf(fp,"%12d %12.6f %12.6f %12.6f %12.6f %12.6f %12.6f\n", nparthalo[i], xh/nparthalo[i], yh/nparthalo[i], zh/nparthalo[i], vxh/nparthalo[i], vyh/nparthalo[i], vzh/nparthalo[i]);   
-      }
 #endif
+      }
       fclose(fp);
     }
     MPI_Barrier(MPI_COMM_WORLD);
