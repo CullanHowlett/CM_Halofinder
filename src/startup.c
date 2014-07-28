@@ -237,6 +237,14 @@ void Read_Parameterfile(char * fname) {
   addr[nt] = OutputFileBase;
   id[nt++] = STRING;
 
+#ifdef LIGHTCONE
+#ifdef UNFORMATTED
+  strcpy(tag[nt], "InputInfoFile");
+  addr[nt] = InputInfoFile;
+  id[nt++] = STRING;
+#endif
+#endif
+
 #ifdef VARLINK
   strcpy(tag[nt], "Omega");
   addr[nt] = &Omega;

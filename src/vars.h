@@ -93,6 +93,11 @@ header;
 // ==============
 extern char InputFileBase[500];   // The base input filename
 extern char OutputFileBase[500];  // The base output filename
+#ifdef LIGHTCONE
+#ifdef UNFORMATTED
+extern char InputInfoFile[500];   // The PICOLA info file filename
+#endif
+#endif
 extern int Seed;                  // The seed for the subsampling random number generator
 extern int nread;                 // The number of processors reading in the data at once
 extern int nwrite;                // The number of processors writing out the data at once

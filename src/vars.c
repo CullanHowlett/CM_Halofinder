@@ -37,6 +37,11 @@ struct io_header_1 header;
 // ==============
 char InputFileBase[500];   // The base input filename
 char OutputFileBase[500];  // The base output filename
+#ifdef LIGHTCONE
+#ifdef UNFORMATTED
+char InputInfoFile[500];   // The PICOLA info file filename
+#endif
+#endif
 int Seed;                  // The seed for the subsampling random number generator
 int nread;                 // The number of processors reading in the data at once
 int nwrite;                // The number of processors writing out the data at once

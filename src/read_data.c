@@ -25,7 +25,7 @@ void Read_Data(void) {
   char buf[500];
   char ** filelist=NULL;
   int i, imax, k, q;
-  int file_exists, filenumber=ninputfiles, nreadid;
+  int readproc, file_exists, filenumber=ninputfiles, nreadid;
   int *readid, * data_index, * nparticles, * nparticles_recv, * cnparticles, * cnparticles_recv;
   int processor_number, neighbour_x, neighbour_y, neighbour_z, processor_comp[3], subscript[3];
   unsigned int j, m, n, npartfile=0, Nout=0, Nout_glob=0; 
@@ -38,9 +38,11 @@ void Read_Data(void) {
 #endif
   struct part_data_half * P_sorted_pos, * P_sorted_vel, * P_temp_pos, * P_temp_vel;
 #ifdef LIGHTCONE
-#ifdef UNFORMATTED
-  int cont, dummy;
-  float val;
+#ifdef UNFORMATTED 
+  char * name, * bufa;
+  int cont, ninfo=0, dummy, * filenumbers=NULL;
+  unsigned int npart, *npartfiles=NULL;
+  float val, xminf, yminf, zminf, xmaxf, ymaxf, zmaxf;
 #ifdef PARTICLE_ID
   unsigned long long ival;
 #endif
@@ -74,39 +76,75 @@ void Read_Data(void) {
       if (nreadid == nread) break;       // This is here to account for when nread is not a factor of NTask        
     }
   }
+
+  readproc=0;
+  for (k=0; k<nread; k++) {
+    if (readid[k] == ThisTask) readproc=1;
+  }
   
   // If Inputstyle!=0 we need to get the necessary processors to read in the list of input files and store them.
   if (InputStyle) {
     ninputfiles=0;
-    for (k=0; k<nread; k++) {
-      if (readid[k] == ThisTask) {
-        if(!(fp=fopen(InputFileBase, "rb"))) {
-          printf("\nERROR: Task %d unable to file %s.\n\n", ThisTask, InputFileBase); 
-          FatalError("read_data.c", 92);
-        }
-        while(fgets(buf,500,fp)) {
-          // Check for empty/commented lines and ignore them
-          char buf1[500], buf2[500];
-          if(sscanf(buf, "%s%s", buf1, buf2) < 1) continue;
-          if((buf1[0] == '%')) continue;
-          ninputfiles++;
-        }
-        rewind(fp);
-        filelist = (char **)malloc(ninputfiles*sizeof(char*));
-        for (q=0; q<ninputfiles; q++) filelist[q] = (char*)malloc(500*sizeof(char));
-        ninputfiles=0;
-        while(fgets(buf,500,fp)) {
-          // Check for empty/commented lines and ignore them
-          char buf1[500], buf2[500];
-          if(sscanf(buf, "%s%s", buf1, buf2) < 1) continue;
-          if((buf1[0] == '%')) continue;
-          strcpy(filelist[ninputfiles],buf1);
-          ninputfiles++;
-        }
+    if (readproc) {
+      if(!(fp=fopen(InputFileBase, "rb"))) {
+        printf("\nERROR: Task %d unable to file %s.\n\n", ThisTask, InputFileBase); 
+        FatalError("read_data.c", 92);
       }
+      while(fgets(buf,500,fp)) {
+        // Check for empty/commented lines and ignore them
+        char buf1[500], buf2[500];
+        if(sscanf(buf, "%s%s", buf1, buf2) < 1) continue;
+        if((buf1[0] == '%')) continue;
+        ninputfiles++;
+      }
+      rewind(fp);
+      filelist = (char **)malloc(ninputfiles*sizeof(char*));
+      for (q=0; q<ninputfiles; q++) filelist[q] = (char*)malloc(500*sizeof(char));
+      ninputfiles=0;
+      while(fgets(buf,500,fp)) {
+        // Check for empty/commented lines and ignore them
+        char buf1[500], buf2[500];
+        if(sscanf(buf, "%s%s", buf1, buf2) < 1) continue;
+        if((buf1[0] == '%')) continue;
+        strcpy(filelist[ninputfiles],buf1);
+        ninputfiles++;
+      }
+      fclose(fp);
     }
     ierr = MPI_Bcast(&ninputfiles, 1, MPI_INT, readid[0], MPI_COMM_WORLD);
   }
+
+#ifdef LIGHTCONE
+#ifdef UNFORMATTED
+  // For unformatted lightcones we need the PICOLA infofile to get the total number of particles in each file.
+  // There are plenty of ways of reading in the lightcones that don't require the infofile but this is the quickest,
+  // and as this mode is designed for PICOLA-LIGHTCONE simulations there will be an infofile available anyway
+  // Read in the info file and determine which files we need to read in 
+  if (readproc) {
+    if(!(fp = fopen(InputInfoFile, "r"))) {
+      printf("\nERROR: Can't open info file '%s'.\n\n", buf);
+      FatalError("read_data.c", 124);
+    }
+
+    while(fgets(buf,500,fp)) ninfo++;
+    filenumbers = (int *)malloc(ninfo*sizeof(int));
+    npartfiles = (unsigned int *)malloc(ninfo*sizeof(unsigned int));
+    rewind(fp);
+    ninfo=0;
+    while(fgets(buf,500,fp)) {
+      if(strncmp(buf,"#",1)==0) continue;
+      if(sscanf(buf,"%d %f %f %f %f %f %f %u\n",&filenumber,&xminf,&yminf,&zminf,&xmaxf,&ymaxf,&zmaxf,&npart)!=8) { 
+        printf("Bad input format in info file '%s\n", InputInfoFile); 
+        FatalError("read_data.c", 135);
+      }  
+      filenumbers[ninfo] = filenumber;
+      npartfiles[ninfo] = npart;
+      ninfo++;
+    }
+    fclose(fp);
+  }
+#endif
+#endif
 
   if (ThisTask == 0) {
     printf("%d tasks reading in %d files...\n", nread, ninputfiles);
@@ -141,7 +179,7 @@ void Read_Data(void) {
         }
       }
     }
-    
+
     nparticles = (int *)malloc(NTask*sizeof(int));
     nparticles_recv = (int *)malloc(NTask*sizeof(int));
 
@@ -156,14 +194,71 @@ void Read_Data(void) {
 // Binary
 #ifdef UNFORMATTED
 
+    // Set the default number of particles to 1. This is so we that we don't have any tasks trying to send zero data
+    // to any other tasks. This is removed later.
+    for(k=0; k<NTask; k++) nparticles[k] = nparticles_recv[k] = 1;
+
     if(file_exists) {
+    
+      // Find out how many particles are in the file using the info file data
+      if (InputStyle) {       
+        // Isolate the filenumber
+        bufa = strdup(buf);
+        name = strsep(&bufa, ".");
+        filenumber = atoi(strsep(&bufa, "."));
+        for (k=0; k<ninfo; k++) {
+          if (filenumbers[k] == filenumber) {
+            npartfile = npartfiles[k];
+            break;
+          }
+        }
+      } else {
+        for (k=0; k<ninfo; k++) {
+          if (filenumbers[k] == (filenumber+starting_file)) {
+            npartfile = npartfiles[k];
+            break;
+          }
+        }
+      }
+
       if(!(fp=fopen(buf, "rb"))) {
         printf("\nERROR: Task %d unable to file %s.\n\n", ThisTask, buf); 
         FatalError("read_data.c", 121);
       }
-    }
-    
-    while(1) {
+
+      P_file = (struct part_data *)malloc(npartfile*sizeof(struct part_data));
+
+      npartfile=0;
+      while(1) {
+        cont = 0;
+        cont = fread(&dummy, sizeof(dummy), 1, fp);
+        if (cont) {
+          my_fread(&npart, sizeof(unsigned int), 1, fp);
+          my_fread(&dummy, sizeof(dummy), 1, fp);
+          my_fread(&dummy, sizeof(dummy), 1, fp);
+          for (j=npartfile; j<npart+npartfile; j++) {
+#ifdef PARTICLE_ID
+            my_fread(&(id), sizeof(unsigned int), 1, fp);
+            P_file[j].ID = ival;
+#endif
+            for (k=0; k<3; k++) {
+              my_fread(&(val), sizeof(float), 1, fp);
+              P_file[j].Pos[k] = val;
+            }
+            for (k=0; k<3; k++) {
+              my_fread(&(val), sizeof(float), 1, fp);
+              P_file[j].Vel[k] = val;
+            }
+          }
+          my_fread(&dummy, sizeof(dummy), 1, fp);
+          npartfile += npart;
+        } else {
+          fclose(fp);
+          break;
+        }
+      }
+
+    /*while(1) {
 
       cont = 0;
 
@@ -202,7 +297,7 @@ void Read_Data(void) {
       MPI_Allreduce(MPI_IN_PLACE, &cont, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
       if(!(cont)) break;
 
-      if (file_exists) {
+      if (file_exists) {*/
 
 // ASCII
 #else 
@@ -693,13 +788,13 @@ void Read_Data(void) {
                          &(nparticles_recv[0]), &(cnparticles_recv[0]), MPI_BYTE, MPI_COMM_WORLD);
 
 
-#ifdef LIGHTCONE
-#ifndef UNFORMATTED
+//#ifdef LIGHTCONE
+//#ifndef UNFORMATTED
+//    free(nparticles);
+//#endif
+//#else
     free(nparticles);
-#endif
-#else
-    free(nparticles);
-#endif
+//#endif
     free(cnparticles);
 #ifdef PARTICLE_ID
     free(P_sorted_id);
@@ -752,13 +847,13 @@ void Read_Data(void) {
       nparticles_tot += (nparticles_recv[k]-1);
     }
 
-#ifdef LIGHTCONE
-#ifndef UNFORMATTED
+//#ifdef LIGHTCONE
+//#ifndef UNFORMATTED
+//    free(nparticles_recv);
+//#endif
+//#else
     free(nparticles_recv);
-#endif
-#else
-    free(nparticles_recv);
-#endif
+//#endif
     free(cnparticles_recv);
 #ifdef PARTICLE_ID
     free(P_temp_id);
@@ -772,13 +867,13 @@ void Read_Data(void) {
       fflush(stdout);
     }
 
-#ifdef LIGHTCONE
-#ifdef UNFORMATTED
-  }
-  free(nparticles);
-  free(nparticles_recv);
-#endif
-#endif
+//#ifdef LIGHTCONE
+//#ifdef UNFORMATTED
+//  }
+//  free(nparticles);
+//  free(nparticles_recv);
+//#endif
+//#endif
     
   }
 
@@ -792,6 +887,14 @@ void Read_Data(void) {
     }
   }
   free(readid);
+
+#ifdef LIGHTCONE
+#ifdef UNFORMATTED
+  // Free the info file data if we used it
+  free(npartfiles);
+  free(filenumbers);
+#endif
+#endif
       
   ierr = MPI_Barrier(MPI_COMM_WORLD);
   printf("Task %d has %d particles in total...\n", ThisTask, nparticles_tot);
