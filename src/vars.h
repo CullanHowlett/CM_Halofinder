@@ -17,6 +17,13 @@
 // Some definitions
 #define  PI          3.14159265358979323846 // PI (obviously)
 
+// Type definitions
+#ifdef MEMORY_MODE
+typedef float part_datatype;
+#else
+typedef double part_datatype;
+#endif
+
 // MPI Variables
 // =============
 extern int ierr;                                             // The MPI call status
