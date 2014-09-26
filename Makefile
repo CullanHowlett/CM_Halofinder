@@ -14,7 +14,7 @@ OPTIMIZE  = -O3 -Wall
 # Various C preprocessor directives that change the way CM_Halofinder is made
 # ===========================================================================
 #PERIODIC = -DPERIODIC	           # Periodic Box
-#-OPTIONS += $(PERIODIC)
+#OPTIONS += $(PERIODIC)
 
 #VARLINK = -DVARLINK               # Redshift dependent linking length
 #OPTIONS += $(VARLINK)
@@ -37,11 +37,14 @@ OPTIONS += $(UNFORMATTED)         # particles in each file must be specified. Wi
 #OUTPUT_PARTICLES = -DOUTPUT_PARTICLES  # Outputs all the particles in each halo, along with the group properties of the halo.
 #OPTIONS += $(OUTPUT_PARTICLES)         # Output format is ID (if requested), Position, Velocity
 
-INERTIA = -DINERTIA		# Calculate the unique elements of the moment of inertia tensor for each halo.
+INERTIA = -DINERTIA		    # Calculate the unique elements of the moment of inertia tensor for each halo.
 OPTIONS += $(INERTIA)		# Output is Ixx, Iyy, Izz, Ixy, Ixz, Iyz
 
 DISPERSION = -DDISPERSION	# Calculate the unique elements of the velocity dispersion tensor for each halo.
 OPTIONS += $(DISPERSION)	# Output is sigma_xx, sigma_yy, sigma_zz, sigma_xy, sigma_xz, sigma_yz
+
+OUTPUT_UNFORMATTED = -DOUTPUT_UNFORMATTED # All output (halos and particle subsamples) is written in unformatted binary.
+OPTIONS += $(OUTPUT_UNFORMATTED)          # Otherwise output is in ASCII
 
 # Run some checks on option compatability
 # =======================================
@@ -85,17 +88,17 @@ LIBS   =   -lm $(MPI_LIBs) $(GSL_LIBS)
 
 CFLAGS =   $(OPTIMIZE) $(GSL_INCL) $(MPI_INCL) $(OPTIONS)
 
-OBJS = src/main.o src/startup.o src/FOF.o src/vars.o
+OBJS = src_v2/main.o src_v2/startup.o src_v2/FOF.o src_v2/vars.o
 ifdef VARLINK
-OBJS += src/link.o
+OBJS += src_v2/link.o
 endif
 ifdef READ_INFO
-OBJS += src/read_data_info.o
+OBJS += src_v2/read_data_info.o
 else
-OBJS += src/read_data.o 
+OBJS += src_v2/read_data.o 
 endif
 
-INCL   = src/vars.h  Makefile
+INCL   = src_v2/vars.h  Makefile
 
 CM_Halofinder: $(OBJS) 
 	$(CC) $(CFLAGS) $(OBJS) $(LIBS) -o  $(EXEC)
@@ -103,4 +106,4 @@ CM_Halofinder: $(OBJS)
 $(OBJS): $(INCL) 
 
 clean:
-	rm -f src/*.o *~ src/*~ $(EXEC)
+	rm -f src_v2/*.o *~ src_v2/*~ $(EXEC)
