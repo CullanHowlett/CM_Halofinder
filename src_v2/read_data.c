@@ -255,7 +255,7 @@ void Read_Data(void) {
           my_fread(&dummy, sizeof(dummy), 1, fp);
           for (j=npartfile; j<npart+npartfile; j++) {
 #ifdef PARTICLE_ID
-            my_fread(&(id), sizeof(unsigned int), 1, fp);
+            my_fread(&(ival), sizeof(unsigned int), 1, fp);
             P_file[j].ID = ival;
 #endif
             for (k=0; k<3; k++) {
