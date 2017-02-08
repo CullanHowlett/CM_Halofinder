@@ -61,7 +61,7 @@ void Read_Data(void) {
   nreadid=0;
   readid = (int *)malloc(nread*sizeof(int));
   for (i=0; i<NTask; i++) {
-    if((i % (int)rint((double)NTask/(double)nread)) == 0) {
+    if((i % (int)int((double)NTask/(double)nread)) == 0) {
       readid[nreadid] = i;
       nreadid++;
       if (nreadid == nread) break;       // This is here to account for when nread is not a factor of NTask        
