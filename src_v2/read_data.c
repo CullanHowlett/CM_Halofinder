@@ -87,7 +87,7 @@ void Read_Data(void) {
   nreadid=0;
   readid = (int *)malloc(nread*sizeof(int));
   for (i=0; i<NTask; i++) {
-    if((i % (int)int((double)NTask/(double)nread)) == 0) {
+    if((i % (int)rint((double)NTask/(double)nread)) == 0) {
       readid[nreadid] = i;
       nreadid++;
       if (nreadid == nread) break;       // This is here to account for when nread is not a factor of NTask        
@@ -829,22 +829,19 @@ void Read_Data(void) {
 
   // If Inputstyle!=0 we need to deallocate the 'filelist'.
   if (InputStyle) {
-    for (k=0; k<nread; k++) {
-      if (readid[k] == ThisTask) {
-        for (q=0; q<ninputfiles; q++) free(filelist[q]);
-        free(filelist);
-      }
+    if (readproc) {
+      for (q=0; q<ninputfiles; q++) free(filelist[q]);
+      free(filelist);
+#ifdef LIGHTCONE
+#ifdef UNFORMATTED
+      // Free the info file data if we used it
+      free(npartfiles);
+      free(filenumbers);
+#endif
+#endif    
     }
   }
   free(readid);
-
-#ifdef LIGHTCONE
-#ifdef UNFORMATTED
-  // Free the info file data if we used it
-  free(npartfiles);
-  free(filenumbers);
-#endif
-#endif
       
   ierr = MPI_Barrier(MPI_COMM_WORLD);
   printf("Task %d has %d particles in total...\n", ThisTask, nparticles_tot);

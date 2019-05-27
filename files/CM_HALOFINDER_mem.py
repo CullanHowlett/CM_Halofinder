@@ -5,28 +5,28 @@ import os
 
 # Compilation options
 MEMORY_MODE = 1
-PARTICLE_ID = 0
+PARTICLE_ID = 1
 
 # The parameters
-Nx = 2
-Ny = 10
-Nz = 16
+Nx = 8
+Ny = 8
+Nz = 8
 
-Px = 384
-Py = 6144
-Pz = 6144
+Px = 2048
+Py = 2048
+Pz = 2048
 
-Lxmin = -960.0
+Lxmin = 0.0
 Lymin = 0.0
 Lzmin = 0.0
-Lxmax = -768.0
-Lymax = 3072.0
-Lzmax = 3072.0
+Lxmax = 1200.0
+Lymax = 1200.0
+Lzmax = 1200.0
 
-Buffer = 1.15
-Boundarysize = 20.0
+Buffer = 1.25
+Boundarysize = 35.0
 
-ninputfiles = 528
+ninputfiles = 512
 
 # Perform the calculation. We assume that all the particles are spread uniformly over the input files
 extra=2*(Nx*(Boundarysize/(Lxmax-Lxmin))+Ny*(Boundarysize/(Lymax-Lymin))+Nz*(Boundarysize/(Lzmax-Lzmin)));
