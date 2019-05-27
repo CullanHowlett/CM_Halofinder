@@ -724,10 +724,10 @@ void Read_Data(void) {
     block_lengths[0] = 1;
     block_lengths[1] = 3;
     block_lengths[2] = 3;
-    MPI_Address(&P_sorted[0], &beginning);
-    MPI_Address(&P_sorted[0].ID, &displacements[0]);
-    MPI_Address(&P_sorted[0].Pos, &displacements[1]);
-    MPI_Address(&P_sorted[0].Vel, &displacements[2]);
+    MPI_Get_address(&P_sorted[0], &beginning);
+    MPI_Get_address(&P_sorted[0].ID, &displacements[0]);
+    MPI_Get_address(&P_sorted[0].Pos, &displacements[1]);
+    MPI_Get_address(&P_sorted[0].Vel, &displacements[2]);
     displacements[0] -= beginning;
     displacements[1] -= beginning;
     displacements[2] -= beginning;
@@ -746,9 +746,9 @@ void Read_Data(void) {
     block_count = 2;
     block_lengths[0] = 3;
     block_lengths[1] = 3;
-    MPI_Address(&P_sorted[0], &beginning);
-    MPI_Address(&P_sorted[0].Pos, &displacements[0]);
-    MPI_Address(&P_sorted[0].Vel, &displacements[1]);
+    MPI_Get_address(&P_sorted[0], &beginning);
+    MPI_Get_address(&P_sorted[0].Pos, &displacements[0]);
+    MPI_Get_address(&P_sorted[0].Vel, &displacements[1]);
     displacements[0] -= beginning;
     displacements[1] -= beginning;
 # ifdef MEMORY_MODE
